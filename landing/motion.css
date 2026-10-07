@@ -1,0 +1,63 @@
+/* T13 소프트 3D 정물 — 모션
+ * 의도: 사물이 중력 없이 떠 있는 정물. 각자 다른 위상으로 흔들린다.
+ * 시퀀스:
+ *   3D 오브젝트: 상하 부유 ±6~10px, 오브젝트마다 지연 다르게 — 4~6s ease-in-out
+ *   소프트 섀도우: 부유에 맞춰 blur·scale 연동 — 4~6s ease-in-out
+ *   진입: 위 24px에서 순차 드롭 — 0.7s cubic-bezier(.22,1,.36,1) / stagger 120ms
+ * 금지:
+ *   - 오브젝트 회전
+ *   - 같은 위상으로 동시 부유
+ *   - 반사 하이라이트 이동
+ */
+
+/* 진입: 관찰 시점에 .in 을 붙인다 */
+/* JS 가 없거나 실패하면 모션을 통째로 걷어낸다.
+   안 보이는 페이지보다 모션 없는 페이지가 낫다.
+   페이지 head 의 한 줄이 html 에 .js 를 붙인다. */
+html:not(.js) [data-motion]{ opacity:1 !important; transform:none !important;
+                              clip-path:none !important; animation:none !important;
+                              -webkit-mask-image:none !important; mask-image:none !important; }
+
+[data-motion]{ opacity: 0; }
+[data-motion].in{ opacity: 1; }
+
+[data-motion="rise"]        { transform: translateY(16px); transition: opacity .5s var(--ease), transform .5s var(--ease); }
+[data-motion="rise"].in     { transform: none; }
+[data-motion="fade"]        { transition: opacity .6s ease-out; }
+/* 좌→우 마스크 리빌. clip-path 가 아니라 mask 를 쓰는 이유 —
+   clip-path 로 잘린 요소는 IntersectionObserver 교차 영역이 0 이라 .in 이 영원히 안 붙는다.
+   mask 는 관찰 기하에 영향을 주지 않으면서 같은 그림을 만든다. */
+[data-motion="reveal"]      { -webkit-mask-image: linear-gradient(90deg,#000,#000); mask-image: linear-gradient(90deg,#000,#000);
+                              -webkit-mask-repeat: no-repeat; mask-repeat: no-repeat;
+                              -webkit-mask-size: 0% 100%; mask-size: 0% 100%;
+                              transition: -webkit-mask-size .55s var(--ease), mask-size .55s var(--ease), opacity .2s linear; }
+[data-motion="reveal"].in   { -webkit-mask-size: 100% 100%; mask-size: 100% 100%; }
+[data-motion="pop"]         { transform: scale(.88); transition: opacity .35s ease-out, transform .35s cubic-bezier(.34,1.56,.64,1); }
+[data-motion="pop"].in      { transform: none; }
+[data-motion="draw"]        { opacity: 1; stroke-dasharray: var(--len, 1000); stroke-dashoffset: var(--len, 1000);
+                              transition: stroke-dashoffset 1.2s ease-in-out; }
+[data-motion="draw"].in     { stroke-dashoffset: 0; }
+
+/* 순차 지연 — 부모에 data-stagger, 자식에 --i 를 준다 */
+[data-stagger] > *{ transition-delay: calc(var(--i, 0) * var(--stagger, 80ms)); }
+
+/* 상시 모션 */
+@keyframes float-soft { 0%,100%{ transform: translateY(0) } 50%{ transform: translateY(-8px) } }
+@keyframes glow-pulse { 0%,100%{ opacity:.55 } 50%{ opacity:1 } }
+@keyframes sheen      { 0%{ transform: translateX(-120%) } 100%{ transform: translateX(220%) } }
+@keyframes kenburns   { 0%{ transform: scale(1) } 100%{ transform: scale(1.06) } }
+
+.m-float { animation: float-soft 5s var(--ease) infinite; }
+.m-glow  { animation: glow-pulse 8s ease-in-out infinite; }
+.m-scene { animation: kenburns 12s linear forwards; }
+
+/* 값을 세는 요소: <span data-count="1240">0</span> */
+[data-count]{ font-variant-numeric: tabular-nums; }
+
+@media (prefers-reduced-motion: reduce){
+  /* 무한 루프는 전부 끄고 진입은 불투명도만 남긴다 */
+  *, *::before, *::after { animation: none !important; transition-duration: .01ms !important; }
+  [data-motion]{ opacity: 1 !important; transform: none !important; clip-path: none !important;
+                  -webkit-mask-image: none !important; mask-image: none !important; }
+  [data-motion="draw"]{ stroke-dashoffset: 0 !important; }
+}

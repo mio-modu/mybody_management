@@ -1,6 +1,7 @@
 /* 앱 셸 — 라우팅, 테마, 알림, 서비스워커 */
 import { APP } from './config.js';
 import { getState, setSettings, subscribe } from './store.js';
+import { hasModule, needsOnboarding, displayName } from './profile.js';
 import { dateKey, timeKey } from './utils.js';
 import { pending, currentSlot } from './checkin.js';
 import today from './views/today.js';
@@ -10,8 +11,10 @@ import pain from './views/pain.js';
 import labs from './views/labs.js';
 import report from './views/report.js';
 import settings from './views/settings.js';
+import onboard from './views/onboard.js';
 
 const ROUTES = {
+  '#/start': onboard,
   '#/today': today,
   '#/weight': weight,
   '#/glucose': glucose,
@@ -21,20 +24,40 @@ const ROUTES = {
   '#/settings': settings,
 };
 
-const TABS = [
-  { href: '#/today', icon: '◉', label: '홈' },
-  { href: '#/weight', icon: '⚖', label: '체중' },
-  { href: '#/glucose', icon: '◍', label: '혈당' },
-  { href: '#/pain', icon: '✚', label: '통증' },
-  { href: '#/report', icon: '▤', label: '리포트' },
+const ALL_TABS = [
+  { href: '#/today', icon: '◉', label: '홈', module: null },
+  { href: '#/weight', icon: '⚖', label: '체중', module: 'weight' },
+  { href: '#/glucose', icon: '◍', label: '혈당', module: 'glucose' },
+  { href: '#/pain', icon: '✚', label: '통증', module: 'pain' },
+  { href: '#/report', icon: '▤', label: '리포트', module: null },
 ];
+
+/* 켜 둔 모듈의 탭만 깐다 — 쓰지 않는 탭이 자리를 차지하지 않는다 */
+function tabsFor(state) {
+  return ALL_TABS.filter((t) => !t.module || hasModule(state, t.module));
+}
+
+function paintTabs(state) {
+  const tabs = tabsFor(state);
+  const bar = document.querySelector('.tabbar');
+  bar.style.gridTemplateColumns = `repeat(${tabs.length}, 1fr)`;
+  bar.innerHTML = tabs.map((t) => `
+    <a href="${t.href}"><span class="ti" aria-hidden="true">${t.icon}</span>${t.label}</a>`).join('');
+}
 
 const view = document.getElementById('view');
 const header = document.getElementById('header-title');
 const dateEl = document.getElementById('header-date');
 
 function routeKey() {
+  const state = getState();
+  if (needsOnboarding(state)) return '#/start';
   const h = location.hash.split('?')[0];
+  if (h === '#/start') return '#/today';
+  // 꺼 둔 모듈의 화면은 열리지 않는다
+  if (h === '#/glucose' && !hasModule(state, 'glucose')) return '#/today';
+  if (h === '#/pain' && !hasModule(state, 'pain')) return '#/today';
+  if (h === '#/labs' && !hasModule(state, 'labs')) return '#/today';
   return ROUTES[h] ? h : '#/today';
 }
 
@@ -55,9 +78,22 @@ function render(scrollTo) {
   const key = routeKey();
   const v = ROUTES[key];
   const state = getState();
-  header.textContent = key === '#/today' ? `${APP.name}${state.profile.name ? ` · ${state.profile.name}` : ''}` : v.title;
-  const n = pending(state).length;
-  dateEl.textContent = `${new Date().getMonth() + 1}/${new Date().getDate()} ${currentSlot().label}${n ? ` · 체크 ${n}` : ''}`;
+
+  // 꺼진 모듈이나 온보딩으로 되돌린 경우, 주소도 실제 화면과 맞춘다
+  if (location.hash.split('?')[0] !== key) history.replaceState(null, '', key);
+  const who = displayName(state);
+  header.textContent = key === '#/today' ? `${APP.name}${who ? ` · ${who}` : ''}` : v.title;
+  if (key === '#/start') {
+    dateEl.textContent = '';
+    document.querySelector('.tabbar').style.display = 'none';
+    document.getElementById('settings-btn').style.display = 'none';
+  } else {
+    document.querySelector('.tabbar').style.display = '';
+    document.getElementById('settings-btn').style.display = '';
+    const n = pending(state).length;
+    dateEl.textContent = `${new Date().getMonth() + 1}/${new Date().getDate()} ${currentSlot().label}${n ? ` · 체크 ${n}` : ''}`;
+  }
+  paintTabs(state);
 
   view.innerHTML = v.render(state);
   v.mount(view, state, { rerender, applyTheme, toastEl: null });
@@ -107,13 +143,11 @@ function reminderLoop() {
 }
 
 function boot() {
-  document.querySelector('.tabbar').innerHTML = TABS.map((t) => `
-    <a href="${t.href}"><span class="ti" aria-hidden="true">${t.icon}</span>${t.label}</a>`).join('');
-
   applyTheme();
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
 
-  if (!location.hash || !ROUTES[location.hash.split('?')[0]]) location.hash = '#/today';
+  const first = routeKey();
+  if (location.hash.split('?')[0] !== first) location.hash = first;
   render('top');
 
   window.addEventListener('hashchange', () => render('top'));
@@ -140,7 +174,9 @@ function boot() {
 }
 
 subscribe(() => {
-  const n = pending(getState()).length;
+  const st = getState();
+  if (needsOnboarding(st)) return;
+  const n = pending(st).length;
   dateEl.textContent = `${new Date().getMonth() + 1}/${new Date().getDate()} ${currentSlot().label}${n ? ` · 체크 ${n}` : ''}`;
 });
 

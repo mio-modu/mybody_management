@@ -1,5 +1,6 @@
 /* 통증 — 물어보고(기록), 판단하고(단계), 조절한다(처방). 이 앱의 핵심 화면. */
-import { PAIN_AREAS, PAIN_TRIGGERS, RED_FLAGS } from '../config.js';
+import { PAIN_TRIGGERS, RED_FLAGS } from '../config.js';
+import { painAreas } from '../profile.js';
 import { dateKey, timeKey, esc, num, relDay } from '../utils.js';
 import { addEntry, removeEntry, toggleRoutine } from '../store.js';
 import { buildPrescription, painSeries, painDirection } from '../protocol.js';
@@ -8,10 +9,9 @@ import { chart, mountCharts } from '../chart.js';
 import { tile, nrs, toast } from '../ui.js';
 
 let rangeDays = 30;
-let showSecondary = false;
 
 function buildCharts(state) {
-  const series = PAIN_AREAS.map((a, i) => ({
+  const series = painAreas(state).map((a, i) => ({
     id: a.id, label: a.label, slot: i, markers: true,
     points: painSeries(state, a.id, rangeDays),
   })).filter((s) => s.points.length);
@@ -79,12 +79,12 @@ export default {
     const cfgs = buildCharts(state);
     const recent = [...state.pain].reverse().slice(0, 12);
     const now = new Date();
-    const areas = PAIN_AREAS.filter((a) => a.primary || showSecondary);
+    const areas = painAreas(state);
     const last = state.pain[state.pain.length - 1];
 
     return `
       <div class="tiles">
-        ${PAIN_AREAS.filter((a) => a.primary).map((a) => {
+        ${painAreas(state).slice(0, 2).map((a) => {
           const s = p.byArea[a.id];
           const dir = painDirection(state, a.id);
           return tile({
@@ -104,7 +104,7 @@ export default {
         <div class="card-head"><h2>지금 상태 기록</h2><span class="meta">30초</span></div>
         <form data-pain-form>
           ${areas.map((a) => nrs(a.id, a.label, last?.scores?.[a.id] ?? 0)).join('')}
-          ${!showSecondary ? '<button type="button" class="btn sm ghost full" data-more>어깨·무릎도 기록하기</button>' : ''}
+          <p class="empty" style="padding:4px 0 0">다른 부위를 추가하려면 설정 → 내 몸 설정에서 바꾸세요.</p>
 
           <div class="field" style="margin-top:14px"><label>무엇 때문에 아픈 것 같나 (복수 선택)</label>
             <div class="chips" data-triggers>
@@ -153,7 +153,7 @@ export default {
         <div class="card-head"><h2>기록 이력</h2><span class="meta">${state.pain.length}건</span></div>
         ${recent.length ? recent.map((r) => `<div class="row">
           <span class="when">${esc(relDay(r.ts))} ${esc(String(r.ts).slice(11, 16))}</span>
-          <span class="val">${PAIN_AREAS.filter((a) => r.scores?.[a.id] != null).map((a) => `${esc(a.label)} ${esc(String(r.scores[a.id]))}`).join(' / ')}</span>
+          <span class="val">${painAreas(state).filter((a) => r.scores?.[a.id] != null).map((a) => `${esc(a.label)} ${esc(String(r.scores[a.id]))}`).join(' / ')}</span>
           <span class="grow">${esc((r.triggers || []).join(', ') || r.note || '')}</span>
           <button class="del" data-del="${esc(r.id)}" aria-label="삭제">✕</button>
         </div>`).join('') : '<div class="empty">기록이 없습니다.</div>'}
@@ -173,8 +173,6 @@ export default {
       const out = root.querySelector(`[data-score-for="${areaId}"]`);
       r.addEventListener('input', () => { out.textContent = r.value; });
     });
-
-    root.querySelector('[data-more]')?.addEventListener('click', () => { showSecondary = true; ctx.rerender('#pain-form'); });
 
     root.querySelectorAll('[data-trigger]').forEach((c) => c.addEventListener('click', () => {
       c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');

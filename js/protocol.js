@@ -1,5 +1,6 @@
 /* 통증 점수 → 오늘 할 것. "그때그때 묻고, 그때그때 조절한다"의 조절 담당. */
-import { PAIN_AREAS, PROTOCOLS, RED_FLAGS, tierFor } from './config.js';
+import { PROTOCOLS, RED_FLAGS, tierFor } from './config.js';
+import { painAreas } from './profile.js';
 import { parseISO, mean } from './utils.js';
 
 export function latestPain(state) {
@@ -28,9 +29,9 @@ export function painDirection(state, areaId) {
 /* 핵심: 기록 하나로 오늘의 처방을 만든다 */
 export function buildPrescription(state, log = latestPain(state)) {
   const entry = log || { scores: {}, triggers: [], redFlags: [] };
-  const areas = PAIN_AREAS
+  const areas = painAreas(state)
     .map((a) => ({ area: a, score: entry.scores?.[a.id] }))
-    .filter((x) => x.score != null && Number(x.score) > 0 || (x.area.primary && x.score != null));
+    .filter((x) => x.score != null);
 
   const flagged = (entry.redFlags || []).map((id) => RED_FLAGS.find((f) => f.id === id)).filter(Boolean);
 

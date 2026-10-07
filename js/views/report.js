@@ -1,5 +1,5 @@
 /* 리포트 — 숫자를 "다음 주에 뭘 바꿀지"로 요약한다. */
-import { PAIN_AREAS } from '../config.js';
+import { painAreas, hasModule } from '../profile.js';
 import { dateKey, esc, num, signed, daysAgo } from '../utils.js';
 import { weightSummary, glucoseSummary, painSummary, labsSummary, adherence, correlations, strengthWord } from '../analysis.js';
 import { painDirection } from '../protocol.js';
@@ -16,23 +16,22 @@ function focus(state) {
   const l = labsSummary(state);
   const out = [];
 
-  const back = p.byArea.lowBack; const neck = p.byArea.neck;
-  if ((back.avg ?? 0) >= 4 || (neck.avg ?? 0) >= 4) {
-    const worst = (back.avg ?? 0) >= (neck.avg ?? 0) ? back : neck;
+  const worst = Object.values(p.byArea).filter((x) => x && x.avg != null).sort((a, b) => b.avg - a.avg)[0];
+  if (hasModule(state, 'pain') && worst && worst.avg >= 4) {
     out.push({
       tone: 'serious',
       title: `${worst.area.label} 통증 평균 ${num(worst.avg, 1)} — 이번 주 1순위`,
       body: '강도를 올리는 운동은 보류하세요. 앉는 시간 끊기와 수면 시간 확보가 통증 점수를 가장 빨리 내립니다. 2주 이상 4점 이상이면 진료를 한 번 받는 게 효율적입니다.',
     });
   }
-  if (g.byCtx.fasting.avg != null && g.byCtx.fasting.avg > state.targets.glucoseFasting[1]) {
+  if (hasModule(state, 'glucose') && g.byCtx.fasting.avg != null && g.byCtx.fasting.avg > state.targets.glucoseFasting[1]) {
     out.push({
       tone: 'warning',
       title: `공복혈당 평균 ${num(g.byCtx.fasting.avg, 0)} — 목표 ${state.targets.glucoseFasting[1]} 초과`,
       body: '저녁 탄수화물 양과 취침 3시간 전 금식이 공복혈당에 가장 직접적입니다. 아침 공복만 한 주 더 매일 찍어보세요.',
     });
   }
-  if (g.byCtx.post2.avg != null && g.byCtx.post2.avg > state.targets.glucosePost[1]) {
+  if (hasModule(state, 'glucose') && g.byCtx.post2.avg != null && g.byCtx.post2.avg > state.targets.glucosePost[1]) {
     out.push({
       tone: 'warning',
       title: `식후 평균 ${num(g.byCtx.post2.avg, 0)} — 스파이크 관리 필요`,
@@ -46,7 +45,7 @@ function focus(state) {
       body: '먹는 양을 더 줄이기보다 단백질·걸음 수·수면을 먼저 채우세요. 정체는 보통 수면 부족과 활동량 감소에서 옵니다.',
     });
   }
-  if (l.daysSince != null && l.daysSince > 90) {
+  if (hasModule(state, 'labs') && l.daysSince != null && l.daysSince > 90) {
     out.push({ tone: 'warning', title: `혈액검사 ${l.daysSince}일 경과`, body: 'LDL·중성지방·HbA1c 재확인 시점입니다. 식습관 변경 효과는 8~12주면 숫자로 나타납니다.' });
   }
   if (!out.length) {
@@ -133,8 +132,8 @@ export default {
       <div class="section-title">최근 7일 요약</div>
       <div class="tiles">
         ${tile({ label: '체중 변화', value: w.sevenDayDelta != null ? signed(w.sevenDayDelta, 1) : '—', unit: 'kg', sub: `현재 ${num(w.trend, 1)}kg` })}
-        ${tile({ label: '혈당 측정', value: `${g.n}`, unit: '회', sub: g.tir != null ? `범위 내 ${num(g.tir, 0)}%` : '—' })}
-        ${tile({ label: '통증 기록', value: `${p.n}`, unit: '회', sub: `무통증일 ${p.goodDays}일` })}
+        ${hasModule(state, 'glucose') ? tile({ label: '혈당 측정', value: `${g.n}`, unit: '회', sub: g.tir != null ? `범위 내 ${num(g.tir, 0)}%` : '—' }) : ''}
+        ${hasModule(state, 'pain') ? tile({ label: '통증 기록', value: `${p.n}`, unit: '회', sub: `무통증일 ${p.goodDays}일` }) : ''}
         ${tile({ label: '루틴 이행률', value: num(ad, 0), unit: '%', sub: '하루 5개 기준' })}
       </div>
 
@@ -152,9 +151,9 @@ export default {
         </div>
       </div>
 
-      <div class="card">
+      ${hasModule(state, 'pain') ? `<div class="card">
         <div class="card-head"><h2>부위별 통증</h2><span class="meta">7일 평균</span></div>
-        ${PAIN_AREAS.map((a) => {
+        ${painAreas(state).map((a) => {
           const s = p.byArea[a.id];
           if (!s.n) return '';
           const dir = painDirection(state, a.id);
@@ -166,7 +165,7 @@ export default {
             ${badge({ tone, icon: tone === 'good' ? '✓' : '!', label: tone === 'good' ? '목표 내' : '목표 초과' })}
           </div>`;
         }).join('') || '<div class="empty">통증 기록이 없습니다.</div>'}
-      </div>
+      </div>` : ''}
 
       <div class="card">
         <div class="card-head"><h2>내 몸 패턴</h2><span class="meta">기록 기반 상관</span></div>
@@ -183,9 +182,9 @@ export default {
       <div class="card">
         <div class="card-head"><h2>기록 충실도</h2></div>
         <div class="row"><span class="grow">체중</span><span class="val">${state.weight.length}건</span></div>
-        <div class="row"><span class="grow">혈당</span><span class="val">${state.glucose.length}건</span></div>
-        <div class="row"><span class="grow">통증</span><span class="val">${state.pain.length}건</span></div>
-        <div class="row"><span class="grow">혈액검사</span><span class="val">${state.labs.length}건</span></div>
+        ${hasModule(state, 'glucose') ? `<div class="row"><span class="grow">혈당</span><span class="val">${state.glucose.length}건</span></div>` : ''}
+        ${hasModule(state, 'pain') ? `<div class="row"><span class="grow">통증</span><span class="val">${state.pain.length}건</span></div>` : ''}
+        ${hasModule(state, 'labs') ? `<div class="row"><span class="grow">혈액검사</span><span class="val">${state.labs.length}건</span></div>` : ''}
         <div class="row"><span class="grow">루틴 기록일</span><span class="val">${Object.keys(state.days).length}일</span></div>
       </div>
     `;

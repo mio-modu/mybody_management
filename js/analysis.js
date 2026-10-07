@@ -1,5 +1,6 @@
 /* 숫자를 "그래서 뭘 하지"로 바꾸는 계산들 */
-import { DEFAULT_TARGETS, GLUCOSE_CONTEXTS, PAIN_AREAS } from './config.js';
+import { DEFAULT_TARGETS, GLUCOSE_CONTEXTS } from './config.js';
+import { painAreas } from './profile.js';
 import { parseISO, mean, movingAverage, slopePerDay, pearson, eA1c, dateKey, daysAgo } from './utils.js';
 
 export function weightPoints(state, days = 90) {
@@ -83,14 +84,15 @@ export function labsSummary(state) {
 export function painSummary(state, days = 7) {
   const from = daysAgo(days).getTime();
   const rows = state.pain.filter((p) => (parseISO(p.ts)?.getTime() ?? 0) >= from);
+  const areas = painAreas(state);
   const byArea = {};
-  PAIN_AREAS.forEach((a) => {
+  areas.forEach((a) => {
     const vals = rows.map((r) => r.scores?.[a.id]).filter((v) => v != null).map(Number);
     byArea[a.id] = { area: a, n: vals.length, avg: mean(vals), max: vals.length ? Math.max(...vals) : null };
   });
-  const goodDays = new Set(rows.filter((r) => Math.max(0, ...PAIN_AREAS.map((a) => Number(r.scores?.[a.id] ?? 0))) <= (state.targets.painMax ?? 2))
+  const goodDays = new Set(rows.filter((r) => Math.max(0, ...areas.map((a) => Number(r.scores?.[a.id] ?? 0))) <= (state.targets.painMax ?? 2))
     .map((r) => String(r.ts).slice(0, 10)));
-  return { days, n: rows.length, byArea, goodDays: goodDays.size, latest: state.pain[state.pain.length - 1] || null };
+  return { days, n: rows.length, byArea, areas, goodDays: goodDays.size, latest: state.pain[state.pain.length - 1] || null };
 }
 
 export function adherence(state, days = 7) {

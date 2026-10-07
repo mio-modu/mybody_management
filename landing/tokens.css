@@ -1,0 +1,37 @@
+/* T13 소프트 3D 정물 · Soft 3D Still Life
+   무광 3D 사물 몇 개를 저채도 배경에 띄워 '정돈됨'을 파는 유형. 2026년 국내 SaaS 기본값으로 급부상.
+   축: 명도 라이트 / 히어로 일러스트 / 채도 저채도 / 밀도 여백형 / 톤 따뜻
+   색상환은 브랜드에 맞게 옮겨도 되지만 역할 구조와 사용 비율은 고정한다.
+   액센트 10% 이하 · 보조액센트 5% 이하. */
+/* 이 유형은 라이트가 기본이다. */
+:root{
+  --bg: #EEECE6;
+  --surface: #FFFFFF;
+  --ink: #242219;
+  --muted: #8C8879;
+  --accent: #3D7A5A;
+  --accent2: #E0A050;
+  --surface_ink: #242219;
+  --accent-weight: 0.10;   /* 액센트가 화면에서 차지할 최대 비율 */
+  --ease: cubic-bezier(.22,1,.36,1);
+}
+@media (prefers-color-scheme: dark){ :root:not([data-theme="light"]){
+  --bg: #201E16;
+  --surface: #232118;
+  --ink: #F3F2EE;
+  --muted: #A19D91;
+  --accent: #7BA58F;
+  --accent2: #E8B87C;
+  --surface_ink: #F3F2EE;
+} }
+:root[data-theme="dark"]{
+  --bg: #201E16;
+  --surface: #232118;
+  --ink: #F3F2EE;
+  --muted: #A19D91;
+  --accent: #7BA58F;
+  --accent2: #E8B87C;
+  --surface_ink: #F3F2EE;
+}
+
+html, body { background: var(--bg); color: var(--ink); }

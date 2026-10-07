@@ -1,0 +1,330 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>마이바디 — 매일 1분, 내 몸 수치와 통증을 한 화면에</title>
+<meta name="description" content="체중·혈당·콜레스테롤·통증을 한 화면에서 관리하는 개인용 PWA. 통증 점수에 맞춰 그날의 운동 강도가 자동으로 바뀝니다. 기록은 내 기기 안에만 남습니다.">
+<meta property="og:title" content="마이바디 — 매일 1분, 내 몸 수치와 통증을 한 화면에">
+<meta property="og:description" content="숫자를 '오늘 할 일'로 바꿉니다. 설치 불필요, 가입 없음, 기록은 내 기기 안에만.">
+<meta property="og:type" content="website">
+<link rel="icon" href="../assets/icons/icon-192.png" sizes="192x192">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="motion.css">
+<script>document.documentElement.className += ' js';</script>
+<style>
+  /* T13 소프트 3D 정물 · 랜딩 페이지 / 원페이지 스크롤
+     구도 — 오브젝트 3개 비정삼각 배치 · 초점은 가장 큰 체중계 · 여백 50%
+            간격 = 오브젝트 폭의 0.6배 · 바닥 그림자는 같은 지평선 · 높이차 8:5:3
+     입체 — 3겹(배경 / 오브젝트 / 그림자) · 그림자 y12 blur28 10% ~ y28 blur52 7%
+            아이소메트릭 약각도, 소실점 없음 · 겹침 15% 이내
+     이미지 — 1:1 오브젝트 프레임 · 하단 2/3 · 무광 매트, 반사·금속 금지 */
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; line-height: 1.65; background: var(--bg); color: var(--ink);
+    font-family: Pretendard, "Pretendard Variable", -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif;
+    letter-spacing: -.01em;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 80px; }
+  .s { padding-block: 72px; }
+  @media (max-width: 640px) { .s { padding-block: 52px; } }
+
+  h1, h2, h3 { font-weight: 700; letter-spacing: -.03em; margin: 0; }
+  h1 { font-size: clamp(30px, 7.2vw, 52px); line-height: 1.25; }
+  h2 { font-size: clamp(22px, 4.6vw, 34px); line-height: 1.3; }
+  h3 { font-size: 17px; }
+  p { margin: 0; }
+  .lead { font-size: clamp(15px, 2.4vw, 17px); color: var(--muted); max-width: 42em; }
+  .eyebrow { font-size: 12.5px; font-weight: 700; color: var(--accent); letter-spacing: .04em; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center;
+    min-height: 52px; padding: 0 26px; border-radius: 14px; text-decoration: none;
+    background: var(--accent); color: #fff; font-weight: 700; font-size: 16px;
+    box-shadow: 0 12px 28px rgb(0 0 0 / .10);
+  }
+  .btn.sub { background: transparent; color: var(--ink); border: 1px solid rgb(0 0 0 / .14); box-shadow: none; }
+  .btns { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 26px; }
+  .assure { font-size: 13px; color: var(--muted); margin-top: 12px; }
+
+  /* ── 정물 무대 ──────────────────────────────────────────
+     무대를 비율 고정 상자로 두고 오브젝트 위치·크기를 % 로 잡는다.
+     화면이 넓어지든 좁아지든 "간격 = 오브젝트 폭의 0.6배" 와 비정삼각 배치가 그대로 유지된다.
+     기준 무대 1040 × 380.
+       체중계  폭 300 · x 0      (초점 · 가장 큼 · 가장 낮게 뜸)
+       측정기  폭 128 · x 417    (앞 오브젝트와 간격 77 = 128 × 0.6)
+       기록카드 폭 186 · x 657   (앞 오브젝트와 간격 112 = 186 × 0.6)
+     띄운 높이 24 : 15 : 9 = 8 : 5 : 3, 바닥 그림자는 모두 같은 지평선 */
+  .still { position: relative; width: 100%; aspect-ratio: 1040 / 380; margin-top: 10px; max-width: 1040px; }
+  .obj { position: absolute; bottom: 0; }
+  .obj svg { display: block; width: 100%; height: auto; }
+  .obj .shadow { position: absolute; left: 50%; translate: -50% 0; bottom: 0; border-radius: 50%; background: #241f14; }
+
+  .obj-a { width: 28.85%; left: 0;      }
+  .obj-c { width: 12.31%; left: 40.10%; }
+  .obj-b { width: 17.88%; left: 63.17%; }
+
+  .obj-a .lift { translate: 0 -9px;  }
+  .obj-c .lift { translate: 0 -15px; }
+  .obj-b .lift { translate: 0 -24px; }
+
+  /* 높이가 다르면 그림자도 달라야 한다 — 높이 올라갈수록 더 번지고 더 옅게 */
+  .obj-a .shadow { width: 68%; height: 20px; filter: blur(13px); opacity: .10; }
+  .obj-c .shadow { width: 74%; height: 15px; filter: blur(19px); opacity: .085; }
+  .obj-b .shadow { width: 72%; height: 15px; filter: blur(26px); opacity: .07; }
+
+  @media (max-width: 760px) {
+    /* 좁은 화면에서는 같은 비정삼각 배치를 유지한 채 오브젝트를 키운다.
+       폭 42 : 16 : 24%, 간격 9% = 가장 작은 오브젝트(16%) 폭의 0.6배 */
+    .still { aspect-ratio: 1040 / 430; }
+    .obj-a { width: 42%; left: 0;   }
+    .obj-c { width: 16%; left: 51%; }
+    .obj-b { width: 24%; left: 76%; }
+    .obj-a .lift { translate: 0 -14px; }
+    .obj-c .lift { translate: 0 -9px;  }
+    .obj-b .lift { translate: 0 -5px;  }
+    .obj-a .shadow { height: 12px; filter: blur(8px); }
+    .obj-c .shadow { height: 10px; filter: blur(12px); }
+    .obj-b .shadow { height: 10px; filter: blur(15px); }
+  }
+
+  /* 상하 부유 — 오브젝트마다 다른 위상·주기. 회전 없음, 동시 부유 없음 */
+  @keyframes drift-a { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-7px) } }
+  @keyframes drift-b { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-10px) } }
+  @keyframes drift-c { 0%,100% { transform: translateY(0) } 50% { transform: translateY(-6px) } }
+  .obj-a .lift { animation: drift-a 5.4s ease-in-out infinite; }
+  .obj-b .lift { animation: drift-b 4.2s ease-in-out .9s infinite; }
+  .obj-c .lift { animation: drift-c 6s   ease-in-out 1.7s infinite; }
+
+  /* ── 섹션 공통 ── */
+  .grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 34px; }
+  @media (max-width: 760px) { .grid3 { grid-template-columns: 1fr; gap: 14px; } }
+  .card {
+    background: var(--surface); border-radius: 18px; padding: 24px;
+    box-shadow: 0 12px 28px rgb(0 0 0 / .06);
+  }
+  .card p { color: var(--muted); font-size: 14.5px; margin-top: 8px; }
+  .num { font-size: 13px; font-weight: 700; color: var(--accent); }
+
+  .steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-top: 34px; }
+  @media (max-width: 760px) { .steps { grid-template-columns: 1fr; } }
+  .step { padding: 22px 0; border-top: 2px solid var(--accent); }
+  .step .big { font-size: clamp(19px, 3vw, 24px); font-weight: 700; letter-spacing: -.03em; }
+  .step p { color: var(--muted); font-size: 14px; margin-top: 6px; }
+
+  .shots { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; margin-top: 28px; }
+  @media (max-width: 760px) { .shots { grid-template-columns: 1fr; } }
+  .shot { background: var(--surface); border-radius: 18px; padding: 14px; box-shadow: 0 12px 28px rgb(0 0 0 / .06); }
+  .shot img { width: 100%; height: auto; border-radius: 10px; display: block; }
+  .shot figcaption { font-size: 13px; color: var(--muted); margin-top: 10px; }
+
+  .qa { border-top: 1px solid rgb(0 0 0 / .10); padding: 20px 0; }
+  .qa:last-of-type { border-bottom: 1px solid rgb(0 0 0 / .10); }
+  .qa h3 { font-size: 16px; }
+  .qa p { color: var(--muted); font-size: 14.5px; margin-top: 7px; max-width: 46em; }
+
+  .end { background: var(--surface); border-radius: 22px; padding: clamp(28px, 6vw, 56px); box-shadow: 0 18px 44px rgb(0 0 0 / .07); }
+  footer { font-size: 13px; color: var(--muted); display: grid; gap: 6px; }
+  footer a { color: var(--muted); }
+
+  @media (prefers-reduced-motion: reduce) { .obj .lift { animation: none !important; } }
+</style>
+
+<div class="wrap">
+
+  <section id="hero" class="s" data-motion="fade">
+    <p class="eyebrow">개인용 건강 기록 PWA</p>
+    <h1>매일 1분,<br>내 몸 수치와 통증을 한 화면에</h1>
+    <p class="lead" style="margin-top:18px">
+      오늘 뭘 해야 하는지만 묻고, 통증 점수에 맞춰 운동 강도를 자동으로 바꿉니다.
+      기록은 내 폰 안에만 남습니다.
+    </p>
+    <div class="btns">
+      <a class="btn" href="../index.html">앱 열어보기</a>
+      <a class="btn sub" href="https://github.com/mio-modu/mybody_management">소스 보기</a>
+    </div>
+    <p class="assure">설치 불필요 · 가입 없음 · 무료</p>
+
+    <div class="still">
+      <!-- 체중계 — 초점. 가장 크고 가장 낮게 뜬다 -->
+      <div class="obj obj-a">
+        <div class="lift">
+          <svg viewBox="0 0 220 180" role="img" aria-label="체중계를 그린 무광 3D 오브젝트">
+            <polygon points="110,30 212,86 110,142 8,86" fill="#FFFFFF"/>
+            <polygon points="8,86 110,142 110,166 8,110" fill="#DCD8CC"/>
+            <polygon points="110,142 212,86 212,110 110,166" fill="#C6C1B2"/>
+            <polygon points="110,52 176,86 110,120 44,86" fill="#EEEBE3"/>
+            <polygon points="110,62 158,86 110,110 62,86" fill="var(--accent)"/>
+            <polyline points="92,86 104,93 128,79" fill="none" stroke="#FFFFFF" stroke-width="5"
+              stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <span class="shadow"></span>
+      </div>
+
+      <!-- 혈당 측정기 — 가장 작다 -->
+      <div class="obj obj-c">
+        <div class="lift">
+          <svg viewBox="0 0 150 210" role="img" aria-label="시험지가 꽂힌 혈당 측정기 오브젝트">
+            <polygon points="75,96 131,64 131,150 75,182" fill="#C6C1B2"/>
+            <polygon points="19,64 75,96 75,182 19,150" fill="#DCD8CC"/>
+            <polygon points="75,32 131,64 75,96 19,64" fill="#FFFFFF"/>
+            <polygon points="75,46 111,66 75,86 39,66" fill="#EEEBE3"/>
+            <polygon points="75,56 99,70 75,84 51,70" fill="var(--accent)" opacity=".85"/>
+            <polygon points="75,96 95,84 95,112 75,124" fill="var(--accent2)"/>
+            <polygon points="95,84 107,77 107,105 95,112" fill="#C68B45"/>
+          </svg>
+        </div>
+        <span class="shadow"></span>
+      </div>
+
+      <!-- 기록 카드 — 가장 높이 뜬다 -->
+      <div class="obj obj-b">
+        <div class="lift">
+          <svg viewBox="0 0 200 150" role="img" aria-label="체중 추세선이 그려진 기록 카드 오브젝트">
+            <polygon points="100,18 192,68 100,118 8,68" fill="#FFFFFF"/>
+            <polygon points="8,68 100,118 100,134 8,84" fill="#DCD8CC"/>
+            <polygon points="100,118 192,68 192,84 100,134" fill="#C6C1B2"/>
+            <polyline points="42,74 66,84 90,70 114,80 162,56" fill="none"
+              stroke="var(--accent)" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+            <polyline points="40,88 150,80" fill="none" stroke="#DFDBCF" stroke-width="4"
+              stroke-linecap="round" stroke-dasharray="2 9"/>
+          </svg>
+        </div>
+        <span class="shadow"></span>
+      </div>
+    </div>
+  </section>
+
+  <section id="problem" class="s" data-motion="rise">
+    <h2>재긴 재는데,<br>그래서 오늘 뭘 하라는 건지 모르겠다</h2>
+    <p class="lead" style="margin-top:16px">
+      체중은 체중계 앱, 혈당은 혈당계 앱, 목·허리는 아무 데도 없습니다.
+      세 가지가 서로 어떻게 엮이는지 보여주는 화면이 없으니, 숫자는 쌓이는데 행동은 안 바뀝니다.
+    </p>
+  </section>
+
+  <section id="solution" class="s" data-motion="rise">
+    <h2>숫자를 '오늘 할 일'로 바꿉니다</h2>
+    <div class="grid3" data-stagger style="--stagger:110ms">
+      <div class="card">
+        <p class="num">01</p>
+        <h3>묻는 건 하루 3개</h3>
+        <p>아침·낮·저녁에, 아직 답하지 않은 것만 2~4개 띄웁니다. 전부 묻지 않습니다.</p>
+      </div>
+      <div class="card">
+        <p class="num">02</p>
+        <h3>통증이 강도를 정한다</h3>
+        <p>점수가 오르는 중이면 운동 강도를 자동으로 한 단계 낮춥니다.</p>
+      </div>
+      <div class="card">
+        <p class="num">03</p>
+        <h3>해내면 내 보상으로</h3>
+        <p>미션을 채우면 포인트가 쌓이고, 내가 직접 정한 실제 보상과 바꿉니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" class="s" data-motion="rise">
+    <h2>어떻게 돌아가나</h2>
+    <div class="steps" data-stagger style="--stagger:110ms">
+      <div class="step">
+        <p class="num">입력</p>
+        <p class="big">점수 한 번 입력</p>
+        <p>아픈 곳을 0~10 슬라이더로 한 번.</p>
+      </div>
+      <div class="step">
+        <p class="num">판정</p>
+        <p class="big">4단계로 판정</p>
+        <p>최근 추세가 나쁘면 한 단계 보수적으로.</p>
+      </div>
+      <div class="step">
+        <p class="num">결과</p>
+        <p class="big">오늘 할 운동</p>
+        <p>횟수와 이유, 오늘 피할 것까지 같이.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="proof" class="s" data-motion="rise">
+    <h2>직접 열어서 확인하세요</h2>
+    <p class="lead" style="margin-top:14px">
+      아래는 예시 데이터를 넣고 실제 앱에서 찍은 화면입니다. 코드는 전부 공개돼 있습니다.
+    </p>
+    <div class="shots" data-stagger style="--stagger:110ms">
+      <figure class="shot" style="margin:0">
+        <img src="shots/home.png" alt="홈 화면 — 오늘의 미션 3개와 체중·혈당·통증 요약" loading="lazy">
+        <figcaption>홈 — 오늘 미션과 지금 물어볼 것</figcaption>
+      </figure>
+      <figure class="shot" style="margin:0">
+        <img src="shots/pain.png" alt="통증 화면 — 점수에 따라 바뀐 그날의 처방 운동 목록" loading="lazy">
+        <figcaption>통증 — 점수에 맞춰 바뀐 처방</figcaption>
+      </figure>
+      <figure class="shot" style="margin:0">
+        <img src="shots/report.png" alt="리포트 화면 — 포인트와 스탬프, 뱃지" loading="lazy">
+        <figcaption>리포트 — 포인트·스탬프·뱃지</figcaption>
+      </figure>
+    </div>
+    <p class="assure">출처: github.com/mio-modu/mybody_management — 화면을 만든 코드 그대로입니다.</p>
+  </section>
+
+  <section id="faq" class="s" data-motion="rise">
+    <h2>자주 묻는 질문</h2>
+    <div style="margin-top:26px">
+      <div class="qa">
+        <h3>다른 기기와 자동으로 동기화되나요?</h3>
+        <p>안 됩니다. 기록은 이 브라우저 안에만 저장됩니다. 기기를 옮기려면 설정에서 JSON으로 내보내 새 기기에서 가져오세요.</p>
+      </div>
+      <div class="qa">
+        <h3>알림이 제때 오나요?</h3>
+        <p>안 옵니다. 서버가 없어서 앱이 열려 있을 때만 뜹니다. 폰 기본 알람을 체크인 시각에 맞춰 두는 쪽을 권합니다.</p>
+      </div>
+      <div class="qa">
+        <h3>병원 진료를 대신하나요?</h3>
+        <p>아닙니다. 기록·관리 도구입니다. 팔다리 저림이나 힘빠짐 같은 신호를 체크하면 운동 대신 진료를 먼저 안내합니다.</p>
+      </div>
+      <div class="qa">
+        <h3>가족도 쓸 수 있나요?</h3>
+        <p>됩니다. 프로필을 추가하면 한 기기에서 여러 명이 각자 씁니다. 목표·기록·포인트가 완전히 따로 갑니다.</p>
+      </div>
+      <div class="qa">
+        <h3>내 기록을 누가 보나요?</h3>
+        <p>아무도 못 봅니다. 서버로 전송하는 코드 자체가 없습니다. 소스가 공개돼 있어 직접 확인할 수 있습니다.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="cta" class="s" data-motion="rise">
+    <div class="end">
+      <h2>오늘 통증부터 한 번 적어보세요</h2>
+      <p class="lead" style="margin-top:14px">점수 하나만 넣으면 그 자리에서 오늘 할 운동이 나옵니다.</p>
+      <div class="btns">
+        <a class="btn" href="../index.html">앱 열어보기</a>
+      </div>
+      <p class="assure">설치 불필요 · 가입 없음 · 무료</p>
+    </div>
+  </section>
+
+  <section id="footer" class="s" style="padding-block:40px 0" data-motion="rise">
+    <footer>
+      <p><a href="https://github.com/mio-modu/mybody_management">github.com/mio-modu/mybody_management</a></p>
+      <p>개인 기록·관리 도구입니다. 진단이나 치료를 대신하지 않습니다. 기록은 사용자의 기기에만 저장되며 어디로도 전송되지 않습니다.</p>
+      <p>© 2026 마이바디</p>
+    </footer>
+  </section>
+
+</div>
+<script src="motion.js"></script>
+<script>
+  /* 스크롤을 한 번에 건너뛰면(앵커 이동·위치 복원·빠른 플릭) 지나친 섹션이
+     관찰되지 않아 비어 보인다. 이미 지나간 것은 즉시 드러낸다. */
+  (function () {
+    function reveal() {
+      document.querySelectorAll('[data-motion]:not(.in)').forEach(function (el) {
+        if (el.getBoundingClientRect().top < innerHeight) el.classList.add('in');
+      });
+    }
+    addEventListener('scroll', reveal, { passive: true });
+    addEventListener('load', reveal);
+    reveal();
+  })();
+</script>

@@ -1,7 +1,8 @@
 /* 보상 엔진 — 포인트는 "행동"에서만 나온다.
  * 기록과 루틴은 내가 통제할 수 있지만 체중과 혈당 수치는 아니다.
  * 통제 밖의 것에 보상을 걸면 과속하거나 일찍 포기한다. */
-import { CORE_MISSIONS, ROUTINE, POINTS, DEFAULT_REWARDS, BADGES } from './config.js';
+import { coreMissions, POINTS, DEFAULT_REWARDS, BADGES } from './config.js';
+import { hasModule, painAreas } from './profile.js';
 import { dateKey, daysAgo, parseISO } from './utils.js';
 import { getState, save } from './store.js';
 
@@ -11,12 +12,15 @@ export function missionState(state, key = dateKey()) {
   const day = state.days[key] || { done: [] };
   const hasPain = state.pain.some((p) => String(p.ts).slice(0, 10) === key);
   const hasNumber = state.weight.some((w) => w.date === key)
-    || state.glucose.some((g) => String(g.ts).slice(0, 10) === key);
+    || (hasModule(state, 'glucose') && state.glucose.some((g) => String(g.ts).slice(0, 10) === key));
   const routineDone = (day.done || []).length;
 
-  return CORE_MISSIONS.map((m) => {
+  const moved = Boolean(day.steps) || Boolean(day.waterMl);
+
+  return coreMissions(state.profile).map((m) => {
     if (m.id === 'm-body') return { ...m, done: hasPain, progress: hasPain ? 1 : 0, detail: hasPain ? '기록 완료' : '아직' };
     if (m.id === 'm-routine') return { ...m, done: routineDone >= ROUTINE_GOAL, progress: Math.min(1, routineDone / ROUTINE_GOAL), detail: `${routineDone}/${ROUTINE_GOAL}` };
+    if (m.id === 'm-move') return { ...m, done: moved, progress: moved ? 1 : 0, detail: moved ? '기록 완료' : '아직' };
     return { ...m, done: hasNumber, progress: hasNumber ? 1 : 0, detail: hasNumber ? '기록 완료' : '아직' };
   });
 }
@@ -100,14 +104,16 @@ export function badgeList(state) {
 
   // 편안한 한 주 — 최근 7일 통증 기록이 5회 이상이고 전부 목표 이하
   const from = daysAgo(6).getTime();
+  const areaIds = painAreas(state).map((a) => a.id);
   const recentPain = state.pain.filter((p) => (parseISO(p.ts)?.getTime() ?? 0) >= from);
   const limit = state.targets.painMax ?? 2;
-  if (recentPain.length >= 5 && recentPain.every((p) => Math.max(0, ...Object.values(p.scores || {}).map(Number)) <= limit)) {
+  if (hasModule(state, 'pain') && recentPain.length >= 5
+    && recentPain.every((p) => Math.max(0, ...areaIds.map((id) => Number(p.scores?.[id] ?? 0))) <= limit)) {
     earned.add('b-pain7');
   }
 
   // 혈당 안정 — 최근 14일 10회 이상 측정, 범위 내 80% 이상
-  const g14 = state.glucose.filter((g) => (parseISO(g.ts)?.getTime() ?? 0) >= daysAgo(13).getTime());
+  const g14 = hasModule(state, 'glucose') ? state.glucose.filter((g) => (parseISO(g.ts)?.getTime() ?? 0) >= daysAgo(13).getTime()) : [];
   if (g14.length >= 10) {
     const inRange = g14.filter((g) => {
       const [lo, hi] = g.context === 'fasting' ? state.targets.glucoseFasting : state.targets.glucosePost;

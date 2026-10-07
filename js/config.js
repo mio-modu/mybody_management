@@ -30,6 +30,19 @@ export const DEFAULT_TARGETS = {
   painMax: 2,               // 통증 NRS 이 이하로 유지
 };
 
+/* ── 관리 모듈 ───────────────────────────────────────────
+ * 사람마다 관리할 것이 다르다. 체중은 공통, 나머지는 켜고 끈다.
+ * 꺼진 모듈은 탭·체크인·미션·리포트에서 통째로 사라진다. */
+export const MODULES = [
+  { id: 'weight',  label: '체중 · 체성분', desc: '목표 체중, 허리둘레, BMI', fixed: true },
+  { id: 'glucose', label: '혈당',          desc: '공복·식후 혈당, 범위 내 비율' },
+  { id: 'labs',    label: '혈액검사 · 혈압', desc: '콜레스테롤, HbA1c, 간수치' },
+  { id: 'pain',    label: '통증 · 재활',    desc: '아픈 곳 점수와 그날의 처방 운동' },
+];
+
+export const DEFAULT_MODULES = { weight: true, glucose: true, labs: true, pain: true };
+export const DEFAULT_PAIN_AREAS = ['neck', 'lowBack'];
+
 /* ── 혈당 측정 맥락 ─────────────────────────────────────── */
 export const GLUCOSE_CONTEXTS = [
   { id: 'fasting', label: '공복',      short: '공복', target: 'glucoseFasting', shape: 'circle' },
@@ -203,11 +216,24 @@ export const CHECKIN_SLOTS = [
  * 전부가 아니라 3개만. 매일 현실적으로 달성 가능해야 보상이 작동한다.
  * 체중·혈당 "수치"가 아니라 "행동"에만 건다 — 결과는 내 통제 밖이라
  * 보상으로 걸면 과속하거나 일찍 포기하게 된다. */
-export const CORE_MISSIONS = [
-  { id: 'm-body',    label: '몸 상태 한 번 기록',  hint: '목·허리 점수 1회면 충분', route: '#/pain' },
-  { id: 'm-routine', label: '루틴 5개 이상 체크',  hint: '완벽하지 않아도 된다',     route: '#/today' },
-  { id: 'm-number',  label: '숫자 1개 이상 남기기', hint: '체중 또는 혈당 아무거나',  route: '#/today' },
-];
+export function coreMissions(profile = {}) {
+  const m = profile.modules || DEFAULT_MODULES;
+  const list = [];
+  if (m.pain !== false) {
+    list.push({ id: 'm-body', label: '몸 상태 한 번 기록', hint: '아픈 곳 점수 1회면 충분', route: '#/pain' });
+  }
+  list.push({ id: 'm-routine', label: '루틴 5개 이상 체크', hint: '완벽하지 않아도 된다', route: '#/today' });
+  list.push({
+    id: 'm-number',
+    label: '숫자 1개 이상 남기기',
+    hint: m.glucose !== false ? '체중 또는 혈당 아무거나' : '오늘 체중 한 번',
+    route: '#/today',
+  });
+  if (m.pain === false) {
+    list.push({ id: 'm-move', label: '움직임 기록', hint: '걸음 수 또는 물 섭취량', route: '#/today' });
+  }
+  return list;
+}
 
 export const POINTS = {
   perDay: 10,        // 미션 3개 달성한 하루

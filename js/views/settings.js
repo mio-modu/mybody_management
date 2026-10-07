@@ -1,10 +1,12 @@
 /* 설정 — 목표치, 알림, 백업. 데이터는 이 기기에만 있으니 백업이 유일한 보험이다. */
-import { APP, DEFAULT_TARGETS, DEFAULT_REWARDS } from '../config.js';
+import { APP, DEFAULT_TARGETS, DEFAULT_REWARDS, MODULES, PAIN_AREAS } from '../config.js';
 import { dateKey, esc } from '../utils.js';
-import { setProfile, setTargets, setSettings, setRewards, exportJSON, importJSON, wipeAll, uid } from '../store.js';
+import { setProfile, setTargets, setSettings, setRewards, exportJSON, importJSON, wipeAll, uid,
+  listProfiles, switchProfile, addProfile, removeProfile } from '../store.js';
 import { download } from '../utils.js';
 import { toast } from '../ui.js';
 import { rewardList, ledger } from '../rewards.js';
+import { hasModule } from '../profile.js';
 
 const TARGET_FIELDS = [
   { id: 'weightKg', label: '목표 체중', unit: 'kg', step: 0.5 },
@@ -37,6 +39,39 @@ export default {
     const size = (() => { try { return new Blob([JSON.stringify(state)]).size; } catch { return 0; } })();
 
     return `
+      <div class="card">
+        <div class="card-head"><h2>프로필</h2><span class="meta">한 기기에서 여러 명</span></div>
+        <div class="note">가족이 각자 쓸 수 있습니다. 프로필마다 목표·기록·포인트가 완전히 따로 갑니다.</div>
+        <div style="margin-top:10px">
+          ${listProfiles().map((pr) => `<div class="reward">
+            <span class="rt">${esc(pr.name)}${pr.active ? ' <span class="badge good" style="margin-left:4px"><span class="dot"></span>✓ 사용 중</span>' : ''}</span>
+            <span class="rc" style="color:var(--ink-muted)">${esc(String(pr.entries))}건</span>
+            ${pr.active ? '' : `<button class="btn sm" data-switch="${esc(pr.id)}">전환</button>
+              <button class="del" data-pdel="${esc(pr.id)}" aria-label="삭제">✕</button>`}
+          </div>`).join('')}
+        </div>
+        <form data-padd style="margin-top:12px">
+          <div class="field"><label for="p-new">새 프로필 이름</label>
+            <input id="p-new" name="name" type="text" maxlength="20" placeholder="예: 어머니" required /></div>
+          <button class="btn full" type="submit">프로필 추가하고 설정 시작</button>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>내 몸 설정</h2><span class="meta">끈 것은 화면에서 사라집니다</span></div>
+        ${MODULES.map((mod) => `<label class="check">
+          <input type="checkbox" data-module="${esc(mod.id)}" ${mod.fixed ? 'checked disabled' : (hasModule(state, mod.id) ? 'checked' : '')} />
+          <span class="ct"><span class="cl">${esc(mod.label)}${mod.fixed ? ' (기본)' : ''}</span>
+            <span style="display:block;font-size:11.5px;color:var(--ink-muted)">${esc(mod.desc)}</span></span>
+        </label>`).join('')}
+        <div class="section-title" data-areas-title>아픈 곳</div>
+        <div class="chips" data-areas>
+          ${PAIN_AREAS.map((a) => `<button type="button" class="chip" data-area="${esc(a.id)}"
+            aria-pressed="${(p.painAreas || []).includes(a.id)}">${esc(a.label)}</button>`).join('')}
+        </div>
+        <button class="btn primary full" style="margin-top:12px" data-body-save>내 몸 설정 저장</button>
+      </div>
+
       <div class="card">
         <div class="card-head"><h2>내 정보</h2><span class="meta">계산 기준값</span></div>
         <form data-profile>
@@ -134,7 +169,10 @@ export default {
         <div class="card-head"><h2>백업 · 복원</h2><span class="meta">현재 ${esc(bytes(size))}</span></div>
         <div class="note">모든 기록은 이 브라우저 안에만 저장됩니다. 서버로 전송되지 않습니다.
         브라우저 데이터를 지우면 함께 사라지니, 주 1회 내보내기를 권합니다.</div>
-        <div class="btn-row" style="margin-top:10px">
+        <div class="field" style="margin-top:10px"><label>
+          <input type="checkbox" data-export-one style="width:auto;min-height:auto" /> 지금 프로필만 내보내기 (끄면 전체)
+        </label></div>
+        <div class="btn-row">
           <button class="btn primary" data-export>JSON으로 내보내기</button>
           <label class="btn" for="import-file">파일에서 가져오기</label>
           <input id="import-file" type="file" accept="application/json,.json" hidden />
@@ -157,6 +195,54 @@ export default {
   },
 
   mount(root, state, ctx) {
+    root.querySelectorAll('[data-switch]').forEach((b) => b.addEventListener('click', () => {
+      switchProfile(b.dataset.switch);
+      toast('프로필을 전환했습니다');
+      location.hash = '#/today';
+      ctx.rerender('top');
+    }));
+
+    root.querySelectorAll('[data-pdel]').forEach((b) => b.addEventListener('click', () => {
+      const target = listProfiles().find((x) => x.id === b.dataset.pdel);
+      if (!confirm(`「${target?.name}」 프로필과 그 기록을 모두 지웁니다. 되돌릴 수 없습니다. 계속할까요?`)) return;
+      removeProfile(b.dataset.pdel);
+      toast('프로필을 삭제했습니다');
+      ctx.rerender();
+    }));
+
+    root.querySelector('[data-padd]')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      addProfile(new FormData(e.target).get('name') || '');
+      location.hash = '#/start';
+      ctx.rerender('top');
+    });
+
+    const painToggle = root.querySelector('[data-module="pain"]');
+    const areasTitle = root.querySelector('[data-areas-title]');
+    const areasBox = root.querySelector('[data-areas]');
+    const syncAreas = () => {
+      const on = painToggle?.checked;
+      if (areasTitle) areasTitle.style.display = on ? '' : 'none';
+      if (areasBox) areasBox.style.display = on ? '' : 'none';
+    };
+    painToggle?.addEventListener('change', syncAreas);
+    syncAreas();
+
+    root.querySelectorAll('[data-area]').forEach((c) => c.addEventListener('click', () => {
+      c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
+    }));
+
+    root.querySelector('[data-body-save]')?.addEventListener('click', () => {
+      const modules = {};
+      root.querySelectorAll('[data-module]').forEach((cb) => { modules[cb.dataset.module] = cb.checked; });
+      modules.weight = true;
+      const picked = [...root.querySelectorAll('[data-area][aria-pressed="true"]')].map((b) => b.dataset.area);
+      if (modules.pain && !picked.length) { toast('아픈 곳을 하나 이상 고르거나, 통증 관리를 꺼 주세요'); return; }
+      setProfile({ modules, painAreas: picked });
+      toast('내 몸 설정을 저장했습니다');
+      ctx.rerender();
+    });
+
     root.querySelector('[data-profile]')?.addEventListener('submit', (e) => {
       e.preventDefault();
       const f = new FormData(e.target);
@@ -237,7 +323,8 @@ export default {
     });
 
     root.querySelector('[data-export]')?.addEventListener('click', () => {
-      download(`mybody-backup-${dateKey()}.json`, exportJSON());
+      const one = root.querySelector('[data-export-one]')?.checked;
+      download(`mybody-backup-${dateKey()}.json`, exportJSON({ allProfiles: !one }));
       toast('백업 파일을 내려받았습니다');
     });
 

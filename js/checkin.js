@@ -3,6 +3,7 @@
 import { CHECKIN_SLOTS, ROUTINE } from './config.js';
 import { dateKey, parseISO, daysAgo } from './utils.js';
 import { getDay, setDay } from './store.js';
+import { hasModule } from './profile.js';
 
 export function currentSlot(now = new Date()) {
   const h = now.getHours();
@@ -32,7 +33,15 @@ export function pending(state, now = new Date()) {
   const lastWaist = [...state.weight].reverse().find((w) => w.waist != null);
   const lastLab = [...state.labs].sort((a, b) => String(a.date).localeCompare(String(b.date))).pop();
 
-  const push = (o) => { if (!skipped.has(o.id)) items.push(o); };
+  const ON = { glucose: hasModule(state, 'glucose'), labs: hasModule(state, 'labs'), pain: hasModule(state, 'pain') };
+  const push = (o) => {
+    if (skipped.has(o.id)) return;
+    if (o.kind === 'glucose' && !ON.glucose) return;
+    if (o.kind === 'labs' && !ON.labs) return;
+    if ((o.kind === 'pain' || o.kind === 'micro') && !ON.pain) return;
+    if (o.id === 'ci-rx' && !ON.pain) return;
+    items.push(o);
+  };
 
   // 아침
   if (slot.id === 'morning') {

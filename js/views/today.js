@@ -1,5 +1,6 @@
 /* 홈 — "지금 뭘 해야 하는지"만 보여주는 화면 */
-import { ROUTINE, PAIN_AREAS } from '../config.js';
+import { ROUTINE } from '../config.js';
+import { hasModule, painAreas } from '../profile.js';
 import { dateKey, esc, num, signed, relDay, fmtDateTime } from '../utils.js';
 import { toggleRoutine, setDay, upsertWeight, addEntry } from '../store.js';
 import { pending, skipToday, currentSlot, gapDays } from '../checkin.js';
@@ -78,6 +79,7 @@ function checkinCard(state) {
 }
 
 function painCard(state) {
+  if (!hasModule(state, 'pain')) return '';
   const rx = buildPrescription(state);
   const last = rx.entry;
   if (!last.ts) {
@@ -116,21 +118,21 @@ function quickCard(state) {
   return `<div class="card">
     <div class="card-head"><h2>빠른 입력</h2><span class="meta">오늘</span></div>
     <form data-quick>
-      <div class="grid3">
+      <div class="${hasModule(state, 'glucose') ? 'grid3' : 'grid2'}">
         <div class="field"><label for="q-kg">체중 <span class="unit">kg</span></label>
           <input id="q-kg" name="kg" type="number" step="0.1" min="30" max="200" inputmode="decimal" placeholder="—" /></div>
-        <div class="field"><label for="q-glu">혈당 <span class="unit">mg/dL</span></label>
-          <input id="q-glu" name="glu" type="number" step="1" min="30" max="500" inputmode="numeric" placeholder="—" /></div>
+        ${hasModule(state, 'glucose') ? `<div class="field"><label for="q-glu">혈당 <span class="unit">mg/dL</span></label>
+          <input id="q-glu" name="glu" type="number" step="1" min="30" max="500" inputmode="numeric" placeholder="—" /></div>` : ''}
         <div class="field"><label for="q-steps">걸음</label>
           <input id="q-steps" name="steps" type="number" step="100" min="0" max="100000" inputmode="numeric" value="${day.steps || ''}" placeholder="—" /></div>
       </div>
-      <div class="field"><label>혈당 측정 시점</label>
+      ${hasModule(state, 'glucose') ? `<div class="field"><label>혈당 측정 시점</label>
         <div class="chips" data-ctx-group>
           <button type="button" class="chip ctx" data-ctx="fasting" aria-pressed="true">공복</button>
           <button type="button" class="chip ctx" data-ctx="post2" aria-pressed="false">식후 2시간</button>
           <button type="button" class="chip ctx" data-ctx="random" aria-pressed="false">임의/취침전</button>
         </div>
-      </div>
+      </div>` : ''}
       <div class="grid2">
         <div class="field"><label for="q-water">물 <span class="unit">ml</span></label>
           <input id="q-water" name="water" type="number" step="100" min="0" max="6000" inputmode="numeric" value="${day.waterMl || ''}" placeholder="—" /></div>
@@ -166,17 +168,9 @@ export default {
     const p = painSummary(state);
     const l = labsSummary(state);
     const gaps = gapDays(state);
-    const worstPain = PAIN_AREAS.map((a) => p.byArea[a.id]).filter((x) => x.avg != null).sort((a, b) => b.avg - a.avg)[0];
-
-    const needsSetup = !state.profile.heightCm || !state.profile.startWeightKg;
+    const worstPain = painAreas(state).map((a) => p.byArea[a.id]).filter((x) => x && x.avg != null).sort((a, b) => b.avg - a.avg)[0];
 
     return `
-      ${needsSetup ? `<div class="card">
-        <div class="card-head"><h2>시작 설정</h2><span class="meta">1분</span></div>
-        <div style="font-size:13px;color:var(--ink-2)">키와 시작 체중을 넣으면 BMI·진행률·도달 예상 시점이 계산됩니다.
-        목표는 체중 ${esc(num(state.targets.weightKg, 0))}kg으로 잡혀 있고, 설정에서 언제든 바꿀 수 있습니다.</div>
-        <div class="btn-row" style="margin-top:10px"><a class="btn primary" href="#/settings">내 정보 입력하기</a></div>
-      </div>` : ''}
       ${missionCard(state)}
       ${gaps >= 3 ? `<div class="card"><div class="note warn">최근 7일 중 ${gaps}일은 기록이 없습니다. 추세를 보려면 체중·통증 두 개만이라도 매일 남기는 게 좋습니다.</div></div>` : ''}
       ${checkinCard(state)}
@@ -190,24 +184,24 @@ export default {
           sub: w.toGo != null ? (w.toGo > 0 ? `목표까지 ${num(w.toGo, 1)}kg` : '목표 도달') : '기록 필요',
           hero: true,
         })}
-        ${tile({
+        ${hasModule(state, 'glucose') ? tile({
           label: `공복혈당 (${g.days}일 평균)`,
           value: g.byCtx.fasting.avg != null ? num(g.byCtx.fasting.avg, 0) : '—',
           unit: 'mg/dL',
           sub: g.byCtx.fasting.tir != null ? `범위 내 ${num(g.byCtx.fasting.tir, 0)}%` : '기록 필요',
-        })}
-        ${tile({
+        }) : ''}
+        ${hasModule(state, 'labs') ? tile({
           label: 'LDL 콜레스테롤',
           value: l.latest?.ldl != null ? num(l.latest.ldl, 0) : '—',
           unit: 'mg/dL',
           sub: l.daysSince != null ? `${l.daysSince}일 전 검사` : '검사 기록 없음',
-        })}
-        ${tile({
+        }) : ''}
+        ${hasModule(state, 'pain') ? tile({
           label: worstPain ? `${worstPain.area.label} 통증 (7일 평균)` : '통증 (7일 평균)',
           value: worstPain?.avg != null ? num(worstPain.avg, 1) : '—',
           unit: '/10',
           sub: `무통증일 ${p.goodDays}/${p.days}일`,
-        })}
+        }) : ''}
       </div>
 
       <div class="card">
@@ -230,13 +224,13 @@ export default {
       <div class="section-title">전체 관리</div>
       <div class="card" style="padding:4px 14px">
         <div class="row"><a class="grow" href="#/weight" style="color:var(--ink)">체중 · 체성분 · 허리둘레</a><span class="when">${state.weight.length}건</span></div>
-        <div class="row"><a class="grow" href="#/glucose" style="color:var(--ink)">혈당</a><span class="when">${state.glucose.length}건</span></div>
-        <div class="row"><a class="grow" href="#/pain" style="color:var(--ink)">통증 · 처방 운동</a><span class="when">${state.pain.length}건</span></div>
-        <div class="row"><a class="grow" href="#/labs" style="color:var(--ink)">혈액검사 · 혈압</a><span class="when">${state.labs.length}건</span></div>
+        ${hasModule(state, 'glucose') ? `<div class="row"><a class="grow" href="#/glucose" style="color:var(--ink)">혈당</a><span class="when">${state.glucose.length}건</span></div>` : ''}
+        ${hasModule(state, 'pain') ? `<div class="row"><a class="grow" href="#/pain" style="color:var(--ink)">통증 · 처방 운동</a><span class="when">${state.pain.length}건</span></div>` : ''}
+        ${hasModule(state, 'labs') ? `<div class="row"><a class="grow" href="#/labs" style="color:var(--ink)">혈액검사 · 혈압</a><span class="when">${state.labs.length}건</span></div>` : ''}
         <div class="row"><a class="grow" href="#/report" style="color:var(--ink)">주간 리포트 · 내 몸 패턴</a><span class="when">${num(adherence(state), 0)}% 이행</span></div>
         <div class="row"><a class="grow" href="#/settings" style="color:var(--ink)">목표치 · 백업</a><span class="when">설정</span></div>
       </div>
-      ${g.latest ? `<p class="empty">마지막 혈당 기록: ${esc(fmtDateTime(g.latest.ts))} · ${esc(num(g.latest.value, 0))}mg/dL</p>` : ''}
+      ${hasModule(state, 'glucose') && g.latest ? `<p class="empty">마지막 혈당 기록: ${esc(fmtDateTime(g.latest.ts))} · ${esc(num(g.latest.value, 0))}mg/dL</p>` : ''}
     `;
   },
 
