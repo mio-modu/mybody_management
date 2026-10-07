@@ -2,6 +2,8 @@
 import { APP } from './config.js';
 import { getState, setSettings, subscribe } from './store.js';
 import { hasModule, needsOnboarding, displayName } from './profile.js';
+import * as install from './install.js';
+import { toast } from './ui.js';
 import { dateKey, timeKey } from './utils.js';
 import { pending, currentSlot } from './checkin.js';
 import today from './views/today.js';
@@ -145,6 +147,9 @@ function reminderLoop() {
 }
 
 function boot() {
+  install.init();
+  install.onChange(() => render());
+
   applyTheme();
   matchMedia('(prefers-color-scheme: dark)').addEventListener('change', applyTheme);
 
@@ -170,7 +175,18 @@ function boot() {
 
   if ('serviceWorker' in navigator) {
     window.addEventListener('load', () => {
-      navigator.serviceWorker.register('./sw.js').catch((e) => console.warn('SW 등록 실패', e));
+      navigator.serviceWorker.register('./sw.js').then((reg) => {
+        // 새 버전이 올라오면 조용히 받아 두고, 다음에 열 때 적용된다고만 알린다
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          if (!sw) return;
+          sw.addEventListener('statechange', () => {
+            if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+              toast('새 버전이 준비됐습니다. 다시 열면 적용됩니다');
+            }
+          });
+        });
+      }).catch((e) => console.warn('SW 등록 실패', e));
     });
   }
 }

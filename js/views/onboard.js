@@ -3,7 +3,8 @@
 import { MODULES, PAIN_AREAS, DEFAULT_TARGETS } from '../config.js';
 import { esc, num } from '../utils.js';
 import { setProfile, setTargets, getState } from '../store.js';
-import { toast } from '../ui.js';
+import { toast, installBlock } from '../ui.js';
+import * as install from '../install.js';
 
 export default {
   title: '시작하기',
@@ -13,6 +14,19 @@ export default {
     const areas = p.painAreas || [];
 
     return `
+      ${install.shouldOffer() ? `<div class="card install-banner">
+        <div class="ib-head">
+          <img class="ib-icon" src="./assets/icons/icon-192.png" alt="" />
+          <div class="ib-text">
+            <div class="ib-title">먼저 홈 화면에 설치하세요</div>
+            <div class="ib-sub">${install.isIOS()
+              ? '아이폰은 <strong>사파리와 홈 화면 앱의 저장 공간이 따로</strong>입니다. 브라우저에서 먼저 기록하면 설치 후 그 기록이 보이지 않습니다.'
+              : '설치하면 주소창 없이 전체 화면으로 열리고, 오프라인에서도 기록됩니다.'}</div>
+          </div>
+        </div>
+        ${installBlock(install)}
+      </div>` : ''}
+
       <div class="card">
         <div class="card-head"><h2>시작 설정</h2><span class="meta">1분</span></div>
         <div style="font-size:13.5px;color:var(--ink-2)">
@@ -73,6 +87,12 @@ export default {
   },
 
   mount(root, state, ctx) {
+    root.querySelector('[data-install]')?.addEventListener('click', async () => {
+      const r = await install.promptInstall();
+      if (r.ok) toast('설치했습니다. 홈 화면 아이콘으로 열어 시작하세요');
+      ctx.rerender('top');
+    });
+
     const painBlock = root.querySelector('[data-pain-block]');
     const painToggle = root.querySelector('[data-module="pain"]');
     const syncPain = () => { painBlock.style.display = painToggle.checked ? '' : 'none'; };

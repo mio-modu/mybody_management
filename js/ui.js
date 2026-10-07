@@ -53,3 +53,15 @@ export function statRow(label, value, unit = '', j = null) {
     <span class="val">${esc(num(value, 1))}${unit ? `<small> ${esc(unit)}</small>` : ''}</span>
     ${j ? badge(j) : ''}</div>`;
 }
+
+/* 설치 안내 — 버튼을 띄울 수 있으면 버튼, 아이폰이면 손으로 하는 단계 */
+export function installBlock(install, { compact = false } = {}) {
+  if (install.isStandalone()) {
+    return `<div class="note"><strong>앱으로 실행 중입니다.</strong> 홈 화면 아이콘으로 바로 열 수 있습니다.</div>`;
+  }
+  if (install.canPrompt()) {
+    return `<div class="btn-row"><button class="btn primary${compact ? ' sm' : ' full'}" data-install>홈 화면에 앱으로 설치</button></div>`;
+  }
+  const steps = install.manualSteps();
+  return `<ol class="steps-list">${steps.map((t) => `<li>${t}</li>`).join('')}</ol>`;
+}

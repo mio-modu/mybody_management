@@ -8,7 +8,8 @@ import { missionState, streakInfo, ledger, shouldCelebrate, markCelebrated } fro
 import { POINTS } from '../config.js';
 import { buildPrescription } from '../protocol.js';
 import { weightSummary, glucoseSummary, painSummary, adherence, labsSummary } from '../analysis.js';
-import { tile, bar, toast } from '../ui.js';
+import { tile, bar, toast, installBlock } from '../ui.js';
+import * as install from '../install.js';
 
 function ring(pct) {
   const r = 24; const c = 2 * Math.PI * r;
@@ -17,6 +18,21 @@ function ring(pct) {
       <circle class="ring-bg" cx="29" cy="29" r="${r}"></circle>
       <circle class="ring-fg" cx="29" cy="29" r="${r}" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"></circle>
     </svg><span class="ring-t">${Math.round(pct * 100)}%</span></div>`;
+}
+
+function installBanner() {
+  if (!install.shouldOffer() || install.dismissed()) return '';
+  return `<div class="card install-banner" data-install-banner>
+    <div class="ib-head">
+      <img class="ib-icon" src="./assets/icons/icon-192.png" alt="" />
+      <div class="ib-text">
+        <div class="ib-title">홈 화면에 앱으로 두기</div>
+        <div class="ib-sub">주소창 없이 전체 화면으로 열리고, 오프라인에서도 기록할 수 있습니다.</div>
+      </div>
+      <button class="btn sm ghost" data-install-dismiss aria-label="설치 안내 닫기">닫기</button>
+    </div>
+    ${installBlock(install)}
+  </div>`;
 }
 
 function missionCard(state) {
@@ -171,6 +187,7 @@ export default {
     const worstPain = painAreas(state).map((a) => p.byArea[a.id]).filter((x) => x && x.avg != null).sort((a, b) => b.avg - a.avg)[0];
 
     return `
+      ${installBanner()}
       ${missionCard(state)}
       ${gaps >= 3 ? `<div class="card"><div class="note warn">최근 7일 중 ${gaps}일은 기록이 없습니다. 추세를 보려면 체중·통증 두 개만이라도 매일 남기는 게 좋습니다.</div></div>` : ''}
       ${checkinCard(state)}
@@ -235,6 +252,15 @@ export default {
   },
 
   mount(root, state, ctx) {
+    root.querySelector('[data-install]')?.addEventListener('click', async () => {
+      const r = await install.promptInstall();
+      if (r.ok) toast('설치했습니다. 홈 화면에서 열어 보세요');
+    });
+    root.querySelector('[data-install-dismiss]')?.addEventListener('click', () => {
+      install.dismiss();
+      ctx.rerender();
+    });
+
     root.querySelectorAll('[data-mission-go]').forEach((b) => b.addEventListener('click', () => {
       location.hash = b.dataset.missionGo;
     }));

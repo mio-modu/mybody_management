@@ -4,7 +4,8 @@ import { dateKey, esc } from '../utils.js';
 import { setProfile, setTargets, setSettings, setRewards, exportJSON, importJSON, wipeAll, uid,
   listProfiles, switchProfile, addProfile, removeProfile } from '../store.js';
 import { download } from '../utils.js';
-import { toast } from '../ui.js';
+import { toast, installBlock } from '../ui.js';
+import * as install from '../install.js';
 import { rewardList, ledger } from '../rewards.js';
 import { hasModule } from '../profile.js';
 
@@ -163,6 +164,14 @@ export default {
         </form>
         <div class="note" style="margin-top:10px">PWA는 서버 없이 동작하므로 <strong>앱이 열려 있는 동안</strong>에만 알림이 뜹니다.
         확실하게 챙기려면 휴대폰 기본 알람을 위 시각에 맞춰두고, 알람이 울리면 앱을 열어 체크인하세요.</div>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>앱으로 설치</h2>
+          <span class="meta">${install.isStandalone() ? '설치됨' : '홈 화면'}</span></div>
+        <div class="note">설치하면 주소창 없이 전체 화면으로 열리고, 비행기 모드에서도 기록할 수 있습니다.
+        아이콘을 길게 누르면 통증·혈당·체중 기록으로 바로 가는 바로가기도 나옵니다.</div>
+        <div style="margin-top:10px">${installBlock(install)}</div>
       </div>
 
       <div class="card">
@@ -330,6 +339,12 @@ export default {
       const perm = await Notification.requestPermission();
       if (perm === 'granted') new Notification('마이바디', { body: '체크인 알림이 이렇게 표시됩니다.' });
       else toast('알림이 허용되지 않았습니다');
+    });
+
+    root.querySelector('[data-install]')?.addEventListener('click', async () => {
+      const r = await install.promptInstall();
+      if (r.ok) toast('설치했습니다. 홈 화면에서 열어 보세요');
+      ctx.rerender();
     });
 
     root.querySelector('[data-share]')?.addEventListener('click', async () => {

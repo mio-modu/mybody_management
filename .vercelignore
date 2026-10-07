@@ -1,0 +1,4 @@
+# 베르셀에 올릴 필요 없는 것 — 사이트 동작과 무관한 문서·도구·워크플로
+.github/
+*.md
+landing/build-single.py

@@ -1,7 +1,7 @@
 # 마이바디 — 내 몸 관리 PWA
 
 **배포됨** — 앱 <https://mio-modu.github.io/mybody_management/> · 소개 페이지 <https://mio-modu.github.io/mybody_management/landing/>
-(기본 브랜치에 푸시하면 자동으로 다시 배포된다.)
+(기본 브랜치에 푸시하면 자동으로 다시 배포된다. 베르셀 설정도 들어 있어 Import 한 번이면 그쪽에서도 바로 뜬다.)
 
 체중 **68kg**, 혈당, 콜레스테롤, 그리고 **목·허리 통증**을 한 화면에서 관리하는 개인용 PWA.
 설치형 앱스토어 배포가 아니라, 내 폰 홈 화면에 올려놓고 쓰는 개인 도구다.
@@ -151,6 +151,21 @@
 
 그 다음부터는 푸시할 때마다 자동으로 다시 배포된다.
 
+**Vercel — 설정 없이 Import 만**
+
+저장소에 `vercel.json` 과 `.vercelignore` 가 들어 있어 추가 설정이 필요 없다.
+
+1. <https://vercel.com/new> → **Import Git Repository** → `mybody_management` 선택
+2. Framework Preset `Other`, Build Command·Output Directory **모두 비워 둔 채** → **Deploy**
+3. `https://<프로젝트명>.vercel.app/` 에 앱이, `/landing/` 에 소개 페이지가 뜬다
+
+`vercel.json` 이 하는 일 — 서비스워커·HTML·JS·CSS 는 항상 최신을 받게 하고(`must-revalidate`),
+아이콘과 스크린샷만 1년 캐시, 매니페스트 MIME 타입 지정, 기본 보안 헤더 3종.
+`.vercelignore` 는 문서·워크플로처럼 사이트 동작과 무관한 파일을 올리지 않는다.
+
+> GitHub Pages 와 Vercel 을 동시에 켜 둘 수 있지만, **지인에게 보낼 주소는 하나로 정하는 게 낫다.**
+> 베르셀로 가기로 했다면 Pages 는 Settings → Pages → Source 를 `None` 으로 두면 멈춘다.
+
 **내 컴퓨터에서만**
 ```bash
 python3 -m http.server 8765
@@ -158,10 +173,19 @@ python3 -m http.server 8765
 ```
 > `file://` 로 직접 열면 ES 모듈과 Service Worker가 막힌다. 꼭 http로 열 것.
 
-### 2. 홈 화면에 추가
+### 2. 홈 화면에 앱으로 설치 — **기록보다 먼저**
 
-- **iPhone (Safari)**: 공유 버튼 → `홈 화면에 추가`
-- **Android (Chrome)**: 메뉴 → `앱 설치` 또는 `홈 화면에 추가`
+앱을 열면 맨 위에 설치 안내가 뜬다. 안드로이드는 버튼 한 번, 아이폰은 두 단계다.
+
+- **Android (Chrome)**: 안내의 **홈 화면에 앱으로 설치** 버튼 → 끝
+- **iPhone (Safari)**: 공유 버튼(↑) → `홈 화면에 추가` → `추가`
+
+> **아이폰은 설치를 먼저 하세요.** iOS 는 사파리와 홈 화면 앱의 저장 공간이 분리되어 있어서,
+> 사파리에서 먼저 기록하면 설치한 앱에서는 그 기록이 보이지 않는다.
+> 이미 사파리에 기록이 쌓였다면 설정 → 백업으로 내보낸 뒤 설치한 앱에서 가져오면 된다.
+
+설치하면 주소창 없이 전체 화면으로 열리고, 비행기 모드에서도 기록된다.
+홈 화면 아이콘을 길게 누르면 **통증 · 혈당 · 체중** 기록으로 바로 가는 바로가기가 나온다.
 
 남에게 보낼 때는 설정 → **공유 → 소개 링크 보내기**. 메신저에 파일로 보내야 한다면
 `landing/index.single.html` 한 장을 보낸다(색과 이미지가 파일 안에 들어 있어 혼자 열어도 그대로 보인다).
@@ -237,11 +261,14 @@ js/
   checkin.js     "지금 물어볼 것" 선별
   rewards.js     오늘의 미션 판정 · 연속일 · 포인트 · 뱃지 · 보상 교환
   labparse.js    검진 결과지 텍스트 → 숫자 추출 (병원별 표기 차이 흡수)
+  install.js     홈 화면 설치 안내 (안드로이드 버튼 / 아이폰 수동 안내 / 설치 여부 판별)
   profile.js     프로필에 따라 화면이 달라지는 지점(모듈·부위)
   chart.js       의존성 없는 SVG 차트 (호버 툴팁·범례·표 보기)
   ui.js          타일·배지·진행바·슬라이더·토스트
   app.js         라우팅·테마·알림·SW 등록
   views/         onboard · today · weight · glucose · pain · labs · report · summary · settings
+vercel.json             베르셀 배포 설정 (캐시 · MIME · 보안 헤더)
+.vercelignore           베르셀에 올리지 않을 문서·도구
 landing/                T13 구도까지 적용한 랜딩 페이지 (별도 지면)
   index.single.html     공유용 한 장짜리 (색·이미지까지 전부 들어 있음)
   build-single.py       한 장짜리를 다시 굽는 스크립트
