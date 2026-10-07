@@ -1,0 +1,23 @@
+{
+  "name": "마이바디 · 내 몸 관리",
+  "short_name": "마이바디",
+  "description": "체중 68kg 목표, 혈당, 콜레스테롤, 목·허리 통증을 한곳에서 관리하는 개인용 기록 앱",
+  "lang": "ko",
+  "dir": "ltr",
+  "start_url": "./index.html#/today",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#f9f9f7",
+  "theme_color": "#2a78d6",
+  "icons": [
+    { "src": "./assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "./assets/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "./assets/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    { "name": "통증 기록", "short_name": "통증", "url": "./index.html#/pain" },
+    { "name": "혈당 기록", "short_name": "혈당", "url": "./index.html#/glucose" },
+    { "name": "체중 기록", "short_name": "체중", "url": "./index.html#/weight" }
+  ]
+}
