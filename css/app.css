@@ -20,6 +20,8 @@
   --series-2: #eb6834;
   --series-3: #2a78d6;
   --series-4: #eda100;
+  --switch-off: #C9C5B8;     /* 토글 꺼짐 트랙 — 회색 '비활성'이 아니라 '꺼짐'으로 읽히게 */
+  --switch-knob: #FFFFFF;
   --accent: #3D7A5A;         /* T13 accent */
   --accent-ink: #2F6049;
   --accent-wash: #E8F0EA;
@@ -58,6 +60,8 @@
     --series-2: #d95926;
     --series-3: #3987e5;
     --series-4: #c98500;
+    --switch-off: #4A4639;
+    --switch-knob: #F3F2EE;
     --accent: #7BA58F;
     --accent-ink: #9DC2AE;
     --accent-wash: #1E2C24;
@@ -88,6 +92,8 @@
   --series-2: #d95926;
   --series-3: #3987e5;
   --series-4: #c98500;
+  --switch-off: #4A4639;
+  --switch-knob: #F3F2EE;
   --accent: #7BA58F;
   --accent-ink: #9DC2AE;
   --accent-wash: #1E2C24;
@@ -280,19 +286,50 @@ main { padding: 14px 16px calc(84px + env(safe-area-inset-bottom)); max-width: 6
 .check.task input:checked + .ct .cl { color: var(--ink-muted); text-decoration: line-through; }
 .check .tag { font-size: 10.5px; color: var(--ink-muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 6px; }
 
-/* 끌 수 없는 기본 항목 — 회색 비활성 체크박스는 '꺼짐'으로 읽힌다.
- * 켜져 있다는 것이 한눈에 보이도록 직접 그린다. */
-.check.locked { cursor: default; }
-.check.locked input {
-  appearance: none; -webkit-appearance: none; opacity: 1; cursor: default;
-  background: var(--accent); border: 1px solid var(--accent); border-radius: 6px;
-  display: grid; place-items: center;
+/* ───────── 설정 토글 ─────────
+ * 체크박스는 '했다/해당한다'는 기록이고, 스위치는 '켠다/끈다'는 설정이다.
+ * 둘을 같은 모양으로 두면 켜진 설정이 '완료'나 '비활성'으로 읽힌다. */
+input.switch {
+  appearance: none; -webkit-appearance: none;
+  flex: none; width: 48px; height: 28px; min-height: 28px; padding: 0; margin: 0;
+  border-radius: 999px; background: var(--switch-off); border: 1px solid transparent;
+  position: relative; cursor: pointer;
+  transition: background .16s var(--ease);
 }
-.check.locked input::after {
-  content: '✓'; color: var(--on-accent); font-size: 14px; font-weight: 800; line-height: 1;
+input.switch::after {
+  content: ''; position: absolute; top: 2px; left: 2px; width: 22px; height: 22px;
+  border-radius: 50%; background: var(--switch-knob);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, .3), 0 0 0 .5px rgba(0, 0, 0, .1);
+  transition: transform .16s var(--ease);
 }
-.check.locked .cl { color: var(--ink); }
-.check.locked .tag { color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
+input.switch:checked { background: var(--accent); }
+input.switch:checked::after { transform: translateX(20px); }
+input.switch:focus-visible { outline: 2px solid var(--accent-ink); outline-offset: 2px; }
+input.switch:active::after { width: 25px; }
+
+/* 설정 한 줄 — 왼쪽은 무엇인지, 오른쪽은 켜졌는지 */
+.srow {
+  display: flex; align-items: center; gap: 10px;
+  min-height: var(--tap); padding: 8px 0; border-top: 1px solid var(--border); cursor: pointer;
+}
+.srow:first-of-type { border-top: 0; }
+.srow .st { flex: 1; min-width: 0; }
+.srow .sl { font-size: 13.5px; font-weight: 600; display: block; }
+.srow .sd { font-size: 11.5px; color: var(--ink-muted); display: block; }
+.srow .tag {
+  font-size: 10.5px; border-radius: 999px; padding: 1px 7px; white-space: nowrap;
+  color: var(--accent-ink); border: 1px solid color-mix(in srgb, var(--accent) 45%, var(--border));
+}
+
+/* 끌 수 없는 기본 항목 — 회색으로 죽이지 않는다. 켜진 색 그대로 두고 태그로 알린다.
+ * 비활성 입력은 클릭 이벤트를 삼킨다. 스위치를 눌렀을 때 아무 일도 안 일어나면
+ * '고장'으로 읽히므로, 탭이 라벨까지 올라오게 두고 이유를 말해준다. */
+.srow.locked { cursor: default; }
+.srow.locked .switch { cursor: default; pointer-events: none; }
+
+/* 체크박스 줄에 끼워 쓰는 토글 (백업·복원 옵션) */
+.srow.inline { border-top: 0; padding: 4px 0; }
+.srow.inline .sl { font-weight: 400; }
 
 /* 처방 아이템 */
 .rx { padding: 10px 0; border-top: 1px solid var(--border); }

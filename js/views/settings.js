@@ -59,11 +59,12 @@ export default {
 
       <div class="card">
         <div class="card-head"><h2>내 몸 설정</h2><span class="meta">끈 것은 화면에서 사라집니다</span></div>
-        ${MODULES.map((mod) => `<label class="check${mod.fixed ? ' locked' : ''}">
-          <input type="checkbox" data-module="${esc(mod.id)}" ${mod.fixed ? 'checked disabled' : (hasModule(state, mod.id) ? 'checked' : '')} />
-          <span class="ct"><span class="cl">${esc(mod.label)}</span>
-            <span style="display:block;font-size:11.5px;color:var(--ink-muted)">${esc(mod.desc)}</span></span>
+        ${MODULES.map((mod) => `<label class="srow${mod.fixed ? ' locked' : ''}">
+          <span class="st"><span class="sl">${esc(mod.label)}</span>
+            <span class="sd">${esc(mod.desc)}</span></span>
           ${mod.fixed ? '<span class="tag">항상 켜짐</span>' : ''}
+          <input type="checkbox" class="switch" role="switch" data-module="${esc(mod.id)}"
+            ${mod.fixed ? 'checked disabled' : (hasModule(state, mod.id) ? 'checked' : '')} />
         </label>`).join('')}
         <div class="section-title" data-areas-title>아픈 곳</div>
         <div class="chips" data-areas>
@@ -180,17 +181,21 @@ export default {
         <div class="card-head"><h2>백업 · 복원</h2><span class="meta">현재 ${esc(bytes(size))}</span></div>
         <div class="note">모든 기록은 이 브라우저 안에만 저장됩니다. 서버로 전송되지 않습니다.
         브라우저 데이터를 지우면 함께 사라지니, 주 1회 내보내기를 권합니다.</div>
-        <div class="field" style="margin-top:10px"><label>
-          <input type="checkbox" data-export-one style="width:auto;min-height:auto" /> 지금 프로필만 내보내기 (끄면 전체)
-        </label></div>
+        <label class="srow inline" style="margin-top:10px">
+          <span class="st"><span class="sl">지금 프로필만 내보내기</span>
+            <span class="sd">끄면 전체 프로필을 함께 내보냅니다</span></span>
+          <input type="checkbox" class="switch" role="switch" data-export-one />
+        </label>
         <div class="btn-row">
           <button class="btn primary" data-export>JSON으로 내보내기</button>
           <label class="btn" for="import-file">파일에서 가져오기</label>
           <input id="import-file" type="file" accept="application/json,.json" hidden />
         </div>
-        <div class="field" style="margin-top:10px"><label>
-          <input type="checkbox" data-merge style="width:auto;min-height:auto" /> 기존 기록과 합치기 (끄면 전체 교체)
-        </label></div>
+        <label class="srow inline" style="margin-top:10px">
+          <span class="st"><span class="sl">기존 기록과 합치기</span>
+            <span class="sd">끄면 지금 기록을 전부 지우고 교체합니다</span></span>
+          <input type="checkbox" class="switch" role="switch" data-merge />
+        </label>
       </div>
 
       <div class="card">
@@ -228,7 +233,7 @@ export default {
       ctx.rerender('top');
     });
 
-    root.querySelectorAll('.check.locked').forEach((l) => l.addEventListener('click', (e) => {
+    root.querySelectorAll('.srow.locked').forEach((l) => l.addEventListener('click', (e) => {
       e.preventDefault();
       toast('체중은 모든 계산의 기준이라 끌 수 없습니다');
     }));

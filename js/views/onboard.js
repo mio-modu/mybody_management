@@ -47,11 +47,12 @@ export default {
 
         <div class="card">
           <div class="card-head"><h2>무엇을 관리할까요</h2><span class="meta">끈 것은 화면에서 사라집니다</span></div>
-          ${MODULES.map((mod) => `<label class="check${mod.fixed ? ' locked' : ''}">
-            <input type="checkbox" data-module="${esc(mod.id)}" ${mod.fixed ? 'checked disabled' : (m[mod.id] !== false ? 'checked' : '')} />
-            <span class="ct"><span class="cl">${esc(mod.label)}</span>
-              <span class="mh" style="display:block;font-size:11.5px;color:var(--ink-muted)">${esc(mod.desc)}</span></span>
+          ${MODULES.map((mod) => `<label class="srow${mod.fixed ? ' locked' : ''}">
+            <span class="st"><span class="sl">${esc(mod.label)}</span>
+              <span class="sd">${esc(mod.desc)}</span></span>
             ${mod.fixed ? '<span class="tag">항상 켜짐</span>' : ''}
+            <input type="checkbox" class="switch" role="switch" data-module="${esc(mod.id)}"
+              ${mod.fixed ? 'checked disabled' : (m[mod.id] !== false ? 'checked' : '')} />
           </label>`).join('')}
         </div>
 
@@ -80,7 +81,7 @@ export default {
     painToggle.addEventListener('change', syncPain);
     syncPain();
 
-    root.querySelectorAll('.check.locked').forEach((l) => l.addEventListener('click', (e) => {
+    root.querySelectorAll('.srow.locked').forEach((l) => l.addEventListener('click', (e) => {
       e.preventDefault();
       toast('체중은 모든 계산의 기준이라 끌 수 없습니다');
     }));

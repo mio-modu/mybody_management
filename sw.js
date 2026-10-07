@@ -1,5 +1,5 @@
 /* 오프라인 캐시 — 앱 셸은 캐시 우선, 그 외는 네트워크 우선 */
-const VERSION = 'mybody-v5';
+const VERSION = 'mybody-v6';
 const SHELL = [
   './',
   './index.html',
