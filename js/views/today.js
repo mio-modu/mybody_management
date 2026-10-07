@@ -3,9 +3,57 @@ import { ROUTINE, PAIN_AREAS } from '../config.js';
 import { dateKey, esc, num, signed, relDay, fmtDateTime } from '../utils.js';
 import { toggleRoutine, setDay, upsertWeight, addEntry } from '../store.js';
 import { pending, skipToday, currentSlot, gapDays } from '../checkin.js';
+import { missionState, streakInfo, ledger, shouldCelebrate, markCelebrated } from '../rewards.js';
+import { POINTS } from '../config.js';
 import { buildPrescription } from '../protocol.js';
 import { weightSummary, glucoseSummary, painSummary, adherence, labsSummary } from '../analysis.js';
 import { tile, bar, toast } from '../ui.js';
+
+function ring(pct) {
+  const r = 24; const c = 2 * Math.PI * r;
+  const off = c * (1 - Math.max(0, Math.min(1, pct)));
+  return `<div class="ring"><svg width="58" height="58" viewBox="0 0 58 58" aria-hidden="true">
+      <circle class="ring-bg" cx="29" cy="29" r="${r}"></circle>
+      <circle class="ring-fg" cx="29" cy="29" r="${r}" stroke-dasharray="${c.toFixed(1)}" stroke-dashoffset="${off.toFixed(1)}"></circle>
+    </svg><span class="ring-t">${Math.round(pct * 100)}%</span></div>`;
+}
+
+function missionCard(state) {
+  const ms = missionState(state);
+  const doneN = ms.filter((m) => m.done).length;
+  const s = streakInfo(state);
+  const l = ledger(state);
+  const all = doneN === ms.length;
+  const toBonus = s.current > 0 ? POINTS.bonusEvery - (s.current % POINTS.bonusEvery) : POINTS.bonusEvery;
+
+  return `<div class="card mission" data-mission>
+    <div class="mission-top">
+      ${ring(doneN / ms.length)}
+      <div class="mission-lead">
+        <div class="ml-1">${all ? '오늘 미션 완료' : `오늘 미션 ${doneN}/${ms.length}`}</div>
+        <div class="ml-2">${all
+          ? `+${POINTS.perDay}p 적립 · 잔액 ${l.balance}p`
+          : `3개만 채우면 오늘은 성공 · 잔액 ${l.balance}p`}</div>
+      </div>
+      <div class="streak">
+        <div class="sn">${s.current}</div>
+        <div class="sl">연속일</div>
+      </div>
+    </div>
+    ${ms.map((m) => `<button type="button" class="mi ${m.done ? 'done' : ''}" data-mission-go="${esc(m.route)}">
+      <span class="mk">✓</span>
+      <span class="mt"><span class="ml">${esc(m.label)}</span><span class="mh"> ${esc(m.hint)}</span></span>
+      <span class="md">${esc(m.detail)}</span>
+    </button>`).join('')}
+    <div class="note" style="margin-top:10px">
+      ${all
+        ? (s.current >= POINTS.bonusEvery && s.current % POINTS.bonusEvery === 0
+            ? `연속 ${s.current}일 — 보너스 ${POINTS.streakBonus}p가 더 들어왔습니다. 리포트에서 보상을 바꿔 가세요.`
+            : `연속 ${toBonus}일만 더 채우면 보너스 ${POINTS.streakBonus}p가 붙습니다.`)
+        : '포인트는 체중이 아니라 <strong>기록과 루틴</strong>에서만 쌓입니다. 숫자가 안 좋은 날도 기록만 하면 성공입니다.'}
+    </div>
+  </div>`;
+}
 
 function checkinCard(state) {
   const items = pending(state);
@@ -129,6 +177,7 @@ export default {
         목표는 체중 ${esc(num(state.targets.weightKg, 0))}kg으로 잡혀 있고, 설정에서 언제든 바꿀 수 있습니다.</div>
         <div class="btn-row" style="margin-top:10px"><a class="btn primary" href="#/settings">내 정보 입력하기</a></div>
       </div>` : ''}
+      ${missionCard(state)}
       ${gaps >= 3 ? `<div class="card"><div class="note warn">최근 7일 중 ${gaps}일은 기록이 없습니다. 추세를 보려면 체중·통증 두 개만이라도 매일 남기는 게 좋습니다.</div></div>` : ''}
       ${checkinCard(state)}
 
@@ -192,6 +241,17 @@ export default {
   },
 
   mount(root, state, ctx) {
+    root.querySelectorAll('[data-mission-go]').forEach((b) => b.addEventListener('click', () => {
+      location.hash = b.dataset.missionGo;
+    }));
+
+    if (shouldCelebrate(state)) {
+      const card = root.querySelector('[data-mission]');
+      card?.classList.add('celebrate');
+      toast(`오늘 미션 완료! +${POINTS.perDay}p`);
+      markCelebrated(state);
+    }
+
     root.querySelectorAll('[data-skip]').forEach((b) => b.addEventListener('click', () => {
       skipToday(state, b.dataset.skip);
       ctx.rerender();

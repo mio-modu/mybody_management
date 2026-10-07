@@ -1,5 +1,5 @@
 /* 오프라인 캐시 — 앱 셸은 캐시 우선, 그 외는 네트워크 우선 */
-const VERSION = 'mybody-v1';
+const VERSION = 'mybody-v2';
 const SHELL = [
   './',
   './index.html',
@@ -14,6 +14,7 @@ const SHELL = [
   './js/analysis.js',
   './js/protocol.js',
   './js/checkin.js',
+  './js/rewards.js',
   './js/views/today.js',
   './js/views/weight.js',
   './js/views/glucose.js',

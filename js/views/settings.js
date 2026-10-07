@@ -1,9 +1,10 @@
 /* 설정 — 목표치, 알림, 백업. 데이터는 이 기기에만 있으니 백업이 유일한 보험이다. */
-import { APP, DEFAULT_TARGETS } from '../config.js';
+import { APP, DEFAULT_TARGETS, DEFAULT_REWARDS } from '../config.js';
 import { dateKey, esc } from '../utils.js';
-import { setProfile, setTargets, setSettings, exportJSON, importJSON, wipeAll } from '../store.js';
+import { setProfile, setTargets, setSettings, setRewards, exportJSON, importJSON, wipeAll, uid } from '../store.js';
 import { download } from '../utils.js';
 import { toast } from '../ui.js';
+import { rewardList, ledger } from '../rewards.js';
 
 const TARGET_FIELDS = [
   { id: 'weightKg', label: '목표 체중', unit: 'kg', step: 0.5 },
@@ -78,6 +79,31 @@ export default {
           <div class="btn-row">
             <button class="btn primary" type="submit">목표 저장</button>
             <button class="btn ghost" type="button" data-reset-targets>기본값으로</button>
+          </div>
+        </form>
+      </div>
+
+      <div class="card">
+        <div class="card-head"><h2>내 보상</h2><span class="meta">잔액 ${esc(String(ledger(state).balance))}p</span></div>
+        <div class="note">기본값은 예시입니다. <strong>진짜로 받고 싶은 것</strong>으로 바꿔야 미션이 작동합니다.
+        미션 하루 = ${esc(String(10))}p, 연속 7일마다 +30p. 한 주 열심히 하면 100p 정도 모입니다.</div>
+        <div style="margin-top:10px">
+          ${rewardList(state).map((r) => `<div class="reward">
+            <span class="rt">${esc(r.title)}</span>
+            <span class="rc">${esc(String(r.cost))}p</span>
+            <button class="del" data-rw-del="${esc(r.id)}" aria-label="삭제">✕</button>
+          </div>`).join('')}
+        </div>
+        <form data-rw-form style="margin-top:12px">
+          <div class="grid2">
+            <div class="field"><label for="rw-title">보상 이름</label>
+              <input id="rw-title" name="title" type="text" maxlength="40" placeholder="예: 단골집 삼겹살" required /></div>
+            <div class="field"><label for="rw-cost">필요 포인트</label>
+              <input id="rw-cost" name="cost" type="number" step="10" min="10" max="5000" inputmode="numeric" value="100" required /></div>
+          </div>
+          <div class="btn-row">
+            <button class="btn primary" type="submit">보상 추가</button>
+            <button class="btn ghost" type="button" data-rw-reset>기본 목록으로</button>
           </div>
         </form>
       </div>
@@ -162,6 +188,29 @@ export default {
       if (!confirm('목표치를 기본값으로 되돌릴까요? 기록은 지워지지 않습니다.')) return;
       setTargets({ ...DEFAULT_TARGETS });
       toast('기본값으로 되돌렸습니다');
+      ctx.rerender();
+    });
+
+    root.querySelector('[data-rw-form]')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      const next = [...rewardList(state), { id: `rw-${uid()}`, title: f.get('title'), cost: Number(f.get('cost')) }];
+      setRewards({ custom: next });
+      toast('보상을 추가했습니다');
+      ctx.rerender();
+    });
+
+    root.querySelectorAll('[data-rw-del]').forEach((b) => b.addEventListener('click', () => {
+      const next = rewardList(state).filter((r) => r.id !== b.dataset.rwDel);
+      if (!next.length) { toast('보상은 최소 1개 남겨야 합니다'); return; }
+      setRewards({ custom: next });
+      ctx.rerender();
+    }));
+
+    root.querySelector('[data-rw-reset]')?.addEventListener('click', () => {
+      if (!confirm('보상 목록을 기본값으로 되돌릴까요? 모은 포인트는 그대로입니다.')) return;
+      setRewards({ custom: DEFAULT_REWARDS.map((r) => ({ ...r })) });
+      toast('기본 목록으로 되돌렸습니다');
       ctx.rerender();
     });
 

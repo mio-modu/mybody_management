@@ -45,7 +45,7 @@ export function applyTheme() {
   const meta = document.querySelector('meta[name="theme-color"]');
   if (meta) {
     const dark = t === 'dark' || (t === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
-    meta.setAttribute('content', dark ? '#0d0d0d' : '#f9f9f7');
+    meta.setAttribute('content', dark ? '#201E16' : '#EEECE6');
   }
 }
 

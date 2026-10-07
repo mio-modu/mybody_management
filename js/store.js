@@ -1,5 +1,5 @@
 /* 데이터 저장소 — 전부 이 기기 localStorage 안에만 있다. 서버로 나가지 않는다. */
-import { APP, DEFAULT_TARGETS } from './config.js';
+import { APP, DEFAULT_TARGETS, DEFAULT_REWARDS } from './config.js';
 
 const listeners = new Set();
 
@@ -14,6 +14,7 @@ function emptyState() {
     labs: [],     // {id, date, ...LAB_FIELDS, note}
     pain: [],     // {id, ts, scores:{}, triggers:[], redFlags:[], sleepH, sleepQ, stress, sittingH, note}
     days: {},     // 'YYYY-MM-DD': {done:[routineId], waterMl, proteinG, steps, note}
+    rewards: { custom: DEFAULT_REWARDS.map((r) => ({ ...r })), claimed: [], celebrated: null },
     settings: { theme: 'auto', reminders: { morning: '07:00', midday: '13:30', evening: '20:00' }, lastSeen: null },
   };
 }
@@ -39,6 +40,9 @@ function migrate(s) {
   merged.targets = { ...base.targets, ...(s.targets || {}) };
   merged.settings = { ...base.settings, ...(s.settings || {}) };
   merged.settings.reminders = { ...base.settings.reminders, ...((s.settings || {}).reminders || {}) };
+  merged.rewards = { ...base.rewards, ...(s.rewards || {}) };
+  if (!Array.isArray(merged.rewards.custom) || !merged.rewards.custom.length) merged.rewards.custom = base.rewards.custom;
+  if (!Array.isArray(merged.rewards.claimed)) merged.rewards.claimed = [];
   for (const k of ['weight', 'glucose', 'labs', 'pain']) {
     merged[k] = Array.isArray(s[k]) ? s[k] : [];
   }
@@ -126,6 +130,7 @@ export function toggleRoutine(dateKey, routineId) {
 export function setTargets(patch) { Object.assign(state.targets, patch); save(); }
 export function setProfile(patch) { Object.assign(state.profile, patch); save(); }
 export function setSettings(patch) { Object.assign(state.settings, patch); save(); }
+export function setRewards(patch) { Object.assign(state.rewards, patch); save(); }
 
 /* ── 백업 / 복원 ──────────────────────────────────────── */
 export function exportJSON() {

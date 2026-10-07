@@ -6,10 +6,11 @@ import { labsSummary } from '../analysis.js';
 import { chart, mountCharts } from '../chart.js';
 import { tile, badge, toast } from '../ui.js';
 
+/* 색 배정: HDL=계열1(녹) 좋은 쪽, 중성지방=계열2, LDL=계열3 */
 const LIPIDS = [
-  { id: 'ldl', label: 'LDL', slot: 0 },
+  { id: 'ldl', label: 'LDL', slot: 2 },
   { id: 'tg', label: '중성지방', slot: 1 },
-  { id: 'hdl', label: 'HDL', slot: 2 },
+  { id: 'hdl', label: 'HDL', slot: 0 },
 ];
 
 function buildCharts(state) {

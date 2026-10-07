@@ -3,6 +3,9 @@ import { PAIN_AREAS } from '../config.js';
 import { dateKey, esc, num, signed, daysAgo } from '../utils.js';
 import { weightSummary, glucoseSummary, painSummary, labsSummary, adherence, correlations, strengthWord } from '../analysis.js';
 import { painDirection } from '../protocol.js';
+import { streakInfo, ledger, rewardList, claimReward, badgeList, stampDays } from '../rewards.js';
+import { POINTS } from '../config.js';
+import { toast } from '../ui.js';
 import { tile, bar, badge } from '../ui.js';
 
 /* 이번 주 집중할 한두 개를 고른다 — 전부 다 하라고 하면 아무것도 안 한다 */
@@ -52,6 +55,60 @@ function focus(state) {
   return out.slice(0, 3);
 }
 
+function rewardSection(state) {
+  const l = ledger(state);
+  const s = streakInfo(state);
+  const stamps = stampDays(state, 28);
+  const rewards = rewardList(state);
+  const badges = badgeList(state);
+  const got = badges.filter((b) => b.earned).length;
+  const claimed = [...(state.rewards?.claimed || [])].reverse().slice(0, 5);
+  const next = rewards.filter((r) => r.cost > l.balance).sort((a, b) => a.cost - b.cost)[0];
+
+  return `
+    <div class="section-title">보상</div>
+
+    <div class="card">
+      <div class="card-head"><h2>내 포인트</h2>
+        <span class="meta">연속 ${s.current}일 · 최고 ${s.best}일</span></div>
+      <div class="points"><span class="pv">${l.balance}</span><span class="pl">p 사용 가능</span></div>
+      <div style="font-size:12px;color:var(--ink-muted)">
+        총 적립 ${esc(String(l.earned))}p (달성 ${esc(String(s.totalDays))}일 × ${POINTS.perDay}p + 연속 보너스 ${esc(String(l.bonus))}p) · 사용 ${esc(String(l.spent))}p
+      </div>
+      ${next ? `<div class="note" style="margin-top:10px">다음 보상 「${esc(next.title)}」까지 ${esc(String(next.cost - l.balance))}p — 미션 ${esc(String(Math.ceil((next.cost - l.balance) / POINTS.perDay)))}일치입니다.</div>` : ''}
+      <div class="section-title" style="margin-top:14px">최근 4주 스탬프</div>
+      <div class="stamps">${stamps.map((d) => `<i class="${d.done ? 'on' : ''}" title="${esc(d.key)}${d.done ? ' 달성' : ''}"></i>`).join('')}</div>
+      <div style="font-size:11.5px;color:var(--ink-muted)">${esc(String(stamps.filter((d) => d.done).length))}/28일 달성</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>보상 바꾸기</h2><span class="meta">설정에서 내 보상으로 바꿀 수 있습니다</span></div>
+      ${rewards.map((r) => {
+        const can = l.balance >= r.cost;
+        return `<div class="reward">
+          <span class="rt">${esc(r.title)}</span>
+          <span class="rc">${esc(String(r.cost))}p</span>
+          <button class="btn sm ${can ? 'primary' : ''}" data-claim="${esc(r.id)}" ${can ? '' : 'disabled style="opacity:.45"'}>
+            ${can ? '바꾸기' : `${esc(String(r.cost - l.balance))}p 남음`}</button>
+        </div>`;
+      }).join('')}
+      ${claimed.length ? `<div class="section-title">받은 보상</div>
+        ${claimed.map((c) => `<div class="row"><span class="when">${esc(c.date)}</span>
+          <span class="grow" style="color:var(--ink)">${esc(c.title)}</span>
+          <span class="val">−${esc(String(c.cost))}p</span></div>`).join('')}` : ''}
+      <div class="note" style="margin-top:10px">보상은 <strong>실제로 받아야</strong> 작동합니다. 포인트만 쌓고 넘어가면 다음 주부터 미션이 의미를 잃습니다.</div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><h2>뱃지</h2><span class="meta">${got}/${badges.length}</span></div>
+      <div class="badges">
+        ${badges.map((b) => `<div class="bdg ${b.earned ? 'on' : ''}" title="${esc(b.desc)}">
+          <div class="bl">${esc(b.label)}</div><div class="bd">${esc(b.desc)}</div></div>`).join('')}
+      </div>
+    </div>
+  `;
+}
+
 export default {
   title: '리포트',
   render(state) {
@@ -70,6 +127,8 @@ export default {
           ${badge({ tone: it.tone, icon: it.tone === 'good' ? '✓' : '!', label: it.tone === 'good' ? '양호' : '조치' })}</div>
         <div style="font-size:13px;color:var(--ink-2)">${esc(it.body)}</div>
       </div>`).join('')}
+
+      ${rewardSection(state)}
 
       <div class="section-title">최근 7일 요약</div>
       <div class="tiles">
@@ -131,5 +190,14 @@ export default {
       </div>
     `;
   },
-  mount() {},
+  mount(root, state, ctx) {
+    root.querySelectorAll('[data-claim]').forEach((b) => b.addEventListener('click', () => {
+      const r = rewardList(state).find((x) => x.id === b.dataset.claim);
+      if (!r) return;
+      if (!confirm(`「${r.title}」(으)로 ${r.cost}p를 바꿉니다.\n포인트는 차감되고, 보상은 실제로 받으세요. 계속할까요?`)) return;
+      const res = claimReward(state, b.dataset.claim);
+      toast(res.ok ? `${r.title} — 오늘 꼭 받으세요` : res.reason);
+      ctx.rerender();
+    }));
+  },
 };

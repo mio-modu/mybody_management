@@ -198,3 +198,45 @@ export const CHECKIN_SLOTS = [
   { id: 'evening', from: 16, to: 22, label: '저녁', asks: ['pain', 'routine', 'steps'] },
   { id: 'night',   from: 22, to: 29, label: '밤',   asks: ['routine', 'painRecheck'] },
 ];
+
+/* ── 오늘의 미션 (보상 판정 기준) ─────────────────────────
+ * 전부가 아니라 3개만. 매일 현실적으로 달성 가능해야 보상이 작동한다.
+ * 체중·혈당 "수치"가 아니라 "행동"에만 건다 — 결과는 내 통제 밖이라
+ * 보상으로 걸면 과속하거나 일찍 포기하게 된다. */
+export const CORE_MISSIONS = [
+  { id: 'm-body',    label: '몸 상태 한 번 기록',  hint: '목·허리 점수 1회면 충분', route: '#/pain' },
+  { id: 'm-routine', label: '루틴 5개 이상 체크',  hint: '완벽하지 않아도 된다',     route: '#/today' },
+  { id: 'm-number',  label: '숫자 1개 이상 남기기', hint: '체중 또는 혈당 아무거나',  route: '#/today' },
+];
+
+export const POINTS = {
+  perDay: 10,        // 미션 3개 달성한 하루
+  streakBonus: 30,   // 연속 7일마다 추가
+  bonusEvery: 7,
+};
+
+/* 기본 보상 목록 — 설정에서 내 것으로 바꾼다.
+ * 앱이 주는 가짜 배지보다 "내가 정한 실제 보상"이 훨씬 세게 작동한다. */
+export const DEFAULT_REWARDS = [
+  { id: 'rw-cafe',   title: '좋아하는 카페에서 디저트', cost: 80 },
+  { id: 'rw-movie',  title: '보고 싶던 영화 한 편',     cost: 150 },
+  { id: 'rw-book',   title: '사고 싶던 책 / 굿즈',      cost: 250 },
+  { id: 'rw-massage',title: '마사지 · 스파 1회',        cost: 400 },
+  { id: 'rw-gear',   title: '새 운동화 · 운동 장비',    cost: 700 },
+];
+
+/* 마일스톤 뱃지 — 축하용. 포인트와 달리 결과(체중·수치)도 들어간다. */
+export const BADGES = [
+  { id: 'b-first',   label: '첫 걸음',       desc: '첫 기록을 남겼다' },
+  { id: 'b-streak3', label: '3일 연속',      desc: '미션 3일 연속 달성' },
+  { id: 'b-streak7', label: '한 주 완주',    desc: '미션 7일 연속 달성' },
+  { id: 'b-streak14',label: '2주 연속',      desc: '미션 14일 연속 달성' },
+  { id: 'b-streak30',label: '한 달 연속',    desc: '미션 30일 연속 달성' },
+  { id: 'b-streak100',label: '100일',        desc: '미션 100일 연속 달성' },
+  { id: 'b-pain7',   label: '편안한 한 주',  desc: '7일 내내 통증이 목표 이하' },
+  { id: 'b-tir',     label: '혈당 안정',     desc: '2주간 혈당 범위 내 80% 이상' },
+  { id: 'b-w1',      label: '-1kg',          desc: '시작 체중에서 1kg 감량' },
+  { id: 'b-w3',      label: '-3kg',          desc: '시작 체중에서 3kg 감량' },
+  { id: 'b-w5',      label: '-5kg',          desc: '시작 체중에서 5kg 감량' },
+  { id: 'b-goal',    label: '목표 도달',     desc: '목표 체중에 도달했다' },
+];
