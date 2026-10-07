@@ -1,6 +1,8 @@
 /* 통증 — 물어보고(기록), 판단하고(단계), 조절한다(처방). 이 앱의 핵심 화면. */
 import { PAIN_TRIGGERS, RED_FLAGS } from '../config.js';
-import { painAreas } from '../profile.js';
+import { painAreas, showHowTo } from '../profile.js';
+import { getExercise, videoSearchUrl } from '../exercises.js';
+import { poseSVG } from '../poses.js';
 import { dateKey, timeKey, esc, num, relDay } from '../utils.js';
 import { addEntry, removeEntry, toggleRoutine } from '../store.js';
 import { buildPrescription, painSeries, painDirection } from '../protocol.js';
@@ -30,12 +32,43 @@ function buildCharts(state) {
   }];
 }
 
+/* 처방 한 줄. 설명 보기가 켜져 있고 사전에 있는 운동이면 눌러서 펼칠 수 있다. */
+function rxItem(it, { how }) {
+  const ex = it.id ? getExercise(it.id) : null;
+  const name = ex ? ex.name : (it.name || '');
+  const head = `<span class="rx-name">${esc(name)}</span>
+    <span class="rx-dose">${esc(it.dose)}</span>`;
+  const why = it.why ? `<div class="rx-why">${esc(it.why)}</div>` : '';
+
+  if (!ex || !how) {
+    return `<div class="rx"><div class="rx-top">${head}</div>${why}</div>`;
+  }
+
+  return `<details class="rx is-open-able">
+    <summary><div class="rx-top">${head}<span class="rx-chev" aria-hidden="true">⌄</span></div>${why}</summary>
+    <div class="rx-how">
+      <div class="how-grid">
+        <div class="how-pose">${poseSVG(ex.pose)}</div>
+        <ol class="how-steps">${ex.steps.map((t) => `<li>${esc(t)}</li>`).join('')}</ol>
+      </div>
+      <div class="how-note good"><strong>이 느낌이면 맞다</strong> ${esc(ex.feel)}</div>
+      <div class="how-note warn"><strong>흔한 실수</strong> ${esc(ex.mistake)}</div>
+      <a class="btn sm ghost how-video" href="${esc(videoSearchUrl(it.id))}" target="_blank" rel="noopener noreferrer">영상으로 보기 ↗</a>
+    </div>
+  </details>`;
+}
+
 function prescriptionBlock(state) {
   const rx = buildPrescription(state);
   if (!rx.entry.ts) {
     return `<div class="card"><div class="empty">통증을 한 번 기록하면 그 점수에 맞춘 운동이 여기 뜹니다.</div></div>`;
   }
+  const how = showHowTo(state);
   const day = state.days[dateKey()] || { done: [] };
+  const shown = rx.perArea.filter((a) => a.core.length);
+  const extras = rx.perArea.filter((a) => a.extra.length);
+  const time = rx.coreMinutes + (rx.walkMinutes ? ` + 걷기 ${rx.walkMinutes}` : '');
+
   return `
     ${rx.hasRedFlag ? `<div class="card"><div class="note alert">
       <strong>⚠ 진료가 먼저입니다</strong><br/>
@@ -47,17 +80,27 @@ function prescriptionBlock(state) {
     <div class="card">
       <div class="card-head"><h2>오늘의 처방</h2>
         <span class="meta">${esc(relDay(rx.entry.ts))} ${esc(String(rx.entry.ts).slice(11, 16))} 기준</span></div>
+      <div class="rx-summary">
+        <span class="rx-count">${esc(String(rx.coreCount))}가지</span>
+        <span class="rx-time">약 ${esc(String(time))}분</span>
+        ${how ? '<span class="rx-hint">운동 이름을 누르면 하는 법이 펼쳐집니다</span>' : ''}
+      </div>
       <div class="note ${rx.tier.tone === 'good' ? '' : 'warn'}">
         <strong>${esc(rx.tier.label)}</strong> — ${esc(rx.tier.intent)}</div>
 
-      ${rx.perArea.map((a) => `
+      ${shown.map((a) => `
         <div class="section-title">${esc(a.area.label)} · ${esc(String(a.score))}/10 · ${esc(a.tier.label)}
           ${a.adjusted ? ' · <span style="color:var(--serious)">악화 추세라 강도를 낮췄습니다</span>' : ''}</div>
-        ${a.items.length ? a.items.map((it) => `<div class="rx">
-          <div class="rx-top"><span class="rx-name">${esc(it.name)}</span><span class="rx-dose">${esc(it.dose)}</span></div>
-          <div class="rx-why">${esc(it.why)}</div>
-        </div>`).join('') : '<div class="empty">해당 단계 처방이 없습니다.</div>'}
+        ${a.core.map((it) => rxItem(it, { how })).join('')}
       `).join('')}
+
+      ${extras.length ? `<details class="rx-extra">
+        <summary>여유 있으면 더 (${esc(String(rx.extraCount))}가지)</summary>
+        ${extras.map((a) => `
+          <div class="section-title">${esc(a.area.label)}</div>
+          ${a.extra.map((it) => rxItem(it, { how })).join('')}
+        `).join('')}
+      </details>` : ''}
 
       ${rx.cautions.length ? `<div class="section-title">오늘 피할 것 · 바꿀 것</div>
         ${rx.cautions.map((c) => `<div class="row"><span class="grow" style="white-space:normal;color:var(--ink)">${esc(c)}</span></div>`).join('')}` : ''}

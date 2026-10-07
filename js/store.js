@@ -22,6 +22,7 @@ function emptyProfileData(name = '') {
       startWeightKg: null,
       memo: '',
       onboarded: false,
+      showHowTo: true,
       modules: { ...DEFAULT_MODULES },
       painAreas: [...DEFAULT_PAIN_AREAS],
     },

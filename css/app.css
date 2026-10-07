@@ -471,3 +471,38 @@ main { padding: 14px 16px calc(84px + env(safe-area-inset-bottom)); max-width: 6
 .install-banner .ib-text { flex: 1; min-width: 0; }
 .install-banner .ib-title { font-size: 14px; font-weight: 700; letter-spacing: -.02em; }
 .install-banner .ib-sub { font-size: 12px; color: var(--ink-muted); }
+
+/* ───────── 자세 그림 ───────── */
+.pose { width: 100%; max-width: 160px; height: auto; display: block; }
+.pose-line { fill: none; stroke: var(--ink-2); stroke-width: 4; stroke-linecap: round; stroke-linejoin: round; }
+.pose-head { fill: var(--ink-2); }
+.pose-ground { stroke: var(--baseline); stroke-width: 2; stroke-dasharray: 3 5; stroke-linecap: round; }
+.pose-prop { fill: none; stroke: var(--baseline); stroke-width: 3; stroke-linecap: round; }
+
+/* ───────── 운동 설명 펼치기 ───────── */
+.rx-summary { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.rx-summary .rx-count { font-size: 19px; font-weight: 700; letter-spacing: -.03em; }
+.rx-summary .rx-time { font-size: 13px; color: var(--ink-2); font-weight: 600; }
+.rx-summary .rx-hint { font-size: 11.5px; color: var(--ink-muted); margin-left: auto; }
+
+details.rx > summary { list-style: none; cursor: pointer; }
+details.rx > summary::-webkit-details-marker { display: none; }
+.rx-chev { margin-left: 6px; color: var(--ink-muted); font-size: 15px; transition: transform .18s var(--ease); display: inline-block; }
+details.rx[open] .rx-chev { transform: rotate(180deg); }
+details.rx[open] .rx-name { color: var(--accent-ink); }
+
+.rx-how { padding: 10px 0 4px; }
+.how-grid { display: grid; grid-template-columns: 110px 1fr; gap: 12px; align-items: start; }
+@media (max-width: 380px) { .how-grid { grid-template-columns: 84px 1fr; gap: 10px; } }
+.how-pose { background: var(--surface-sunk); border-radius: var(--r-sm); padding: 6px; }
+.how-steps { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; }
+.how-steps li { margin-bottom: 4px; }
+.how-note { font-size: 12.5px; border-radius: var(--r-sm); padding: 8px 10px; margin-top: 8px; }
+.how-note strong { display: block; font-size: 11px; margin-bottom: 2px; }
+.how-note.good { background: var(--good-wash); }
+.how-note.warn { background: var(--warning-wash); }
+.how-video { margin-top: 10px; }
+
+details.rx-extra { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 6px; }
+details.rx-extra > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent-ink); padding: 8px 0; }
+@media (prefers-reduced-motion: reduce) { .rx-chev { transition: none; } }

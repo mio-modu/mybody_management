@@ -16,6 +16,11 @@ export function activeModules(state) {
   return MODULES.filter((m) => hasModule(state, m.id));
 }
 
+/* 운동 설명을 펼칠 수 있게 할지. 아는 사람에게는 군더더기라 끌 수 있다. */
+export function showHowTo(state) {
+  return state?.profile?.showHowTo !== false;
+}
+
 export function displayName(state) {
   return state?.profile?.name?.trim() || '';
 }

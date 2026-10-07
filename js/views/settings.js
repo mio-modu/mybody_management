@@ -7,7 +7,7 @@ import { download } from '../utils.js';
 import { toast, installBlock } from '../ui.js';
 import * as install from '../install.js';
 import { rewardList, ledger } from '../rewards.js';
-import { hasModule } from '../profile.js';
+import { hasModule, showHowTo } from '../profile.js';
 
 const TARGET_FIELDS = [
   { id: 'weightKg', label: '목표 체중', unit: 'kg', step: 0.5 },
@@ -75,6 +75,13 @@ export default {
           ${PAIN_AREAS.map((a) => `<button type="button" class="chip" data-area="${esc(a.id)}"
             aria-pressed="${(p.painAreas || []).includes(a.id)}">${esc(a.label)}</button>`).join('')}
         </div>
+        <div class="section-title">운동 설명</div>
+        <label class="check">
+          <input type="checkbox" data-howto ${showHowTo(state) ? 'checked' : ''} />
+          <span class="ct"><span class="cl">처방에서 운동 하는 법 펼쳐 보기</span>
+            <span style="display:block;font-size:11.5px;color:var(--ink-muted)">운동 이름을 누르면 자세·단계·흔한 실수가 나옵니다. 이미 아는 동작뿐이면 꺼 두세요.</span></span>
+        </label>
+
         <button class="btn primary full" style="margin-top:12px" data-body-save>내 몸 설정 저장</button>
       </div>
 
@@ -262,7 +269,7 @@ export default {
       modules.weight = true;
       const picked = [...root.querySelectorAll('[data-area][aria-pressed="true"]')].map((b) => b.dataset.area);
       if (modules.pain && !picked.length) { toast('아픈 곳을 하나 이상 고르거나, 통증 관리를 꺼 주세요'); return; }
-      setProfile({ modules, painAreas: picked });
+      setProfile({ modules, painAreas: picked, showHowTo: root.querySelector('[data-howto]')?.checked !== false });
       toast('내 몸 설정을 저장했습니다');
       ctx.rerender();
     });

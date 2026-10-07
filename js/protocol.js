@@ -1,5 +1,5 @@
 /* 통증 점수 → 오늘 할 것. "그때그때 묻고, 그때그때 조절한다"의 조절 담당. */
-import { PROTOCOLS, RED_FLAGS, tierFor } from './config.js';
+import { PROTOCOLS, RED_FLAGS, RX_LIMITS, tierFor } from './config.js';
 import { painAreas } from './profile.js';
 import { parseISO, mean } from './utils.js';
 
@@ -29,9 +29,11 @@ export function painDirection(state, areaId) {
 /* 핵심: 기록 하나로 오늘의 처방을 만든다 */
 export function buildPrescription(state, log = latestPain(state)) {
   const entry = log || { scores: {}, triggers: [], redFlags: [] };
-  const areas = painAreas(state)
-    .map((a) => ({ area: a, score: entry.scores?.[a.id] }))
-    .filter((x) => x.score != null);
+  const all = painAreas(state).map((a) => ({ area: a, score: entry.scores?.[a.id] })).filter((x) => x.score != null);
+  // 0점인 부위에 자리를 내주면 정작 아픈 곳의 운동이 밀린다.
+  // 전부 0이면 아픈 데가 없다는 뜻이니, 주 부위 하나만 강화 쪽으로 남긴다.
+  const hurting = all.filter((x) => Number(x.score) > 0);
+  const areas = hurting.length ? hurting : all.slice(0, 1);
 
   const flagged = (entry.redFlags || []).map((id) => RED_FLAGS.find((f) => f.id === id)).filter(Boolean);
 
@@ -42,9 +44,20 @@ export function buildPrescription(state, log = latestPain(state)) {
     let adjusted = false;
     if (dir.dir === 'worse' && tier.id === 'A') { tier = tierFor(4); adjusted = true; }
     else if (dir.dir === 'worse' && tier.id === 'B') { tier = tierFor(7); adjusted = true; }
-    const items = PROTOCOLS[area.id]?.[tier.id] || [];
-    return { area, score: Number(score), tier, items, dir, adjusted };
+    const group = PROTOCOLS[area.id]?.[tier.id] || { core: [], extra: [] };
+    return { area, score: Number(score), tier, group, dir, adjusted };
   }).sort((a, b) => b.score - a.score);
+
+  /* 오늘 할 것을 몇 개로 줄일지 — 많으면 아무것도 안 하게 된다.
+   * 가장 아픈 부위에 자리를 먼저 주고, 나머지는 2개씩, 전체는 상한을 넘지 않는다.
+   * 잘려 나간 것은 버리지 않고 '여유 있으면' 쪽으로 넘긴다. */
+  let budget = RX_LIMITS.totalCore;
+  perArea.forEach((a, i) => {
+    const cap = Math.max(0, Math.min(i === 0 ? RX_LIMITS.topAreaCore : RX_LIMITS.otherAreaCore, budget));
+    a.core = a.group.core.slice(0, cap);
+    a.extra = [...a.group.core.slice(cap), ...a.group.extra];
+    budget -= a.core.length;
+  });
 
   const cautions = [];
   const triggers = entry.triggers || [];
@@ -63,8 +76,14 @@ export function buildPrescription(state, log = latestPain(state)) {
     ? ['1분 호흡(4초 들이쉬고 6초 내쉬기)', '통증 없는 범위로만 자세 바꾸기', '같은 자세 20분 제한 알람']
     : ['턱 당기기 10회', '의자에서 흉추 회전 좌우 10회', '엉덩이 조이기 10초 × 5', '제자리 걷기 1분'];
 
+  const isWalk = (it) => it.id === 'walk-short';
+  const coreMinutes = perArea.reduce((sum, a) => sum + a.core.filter((it) => !isWalk(it)).reduce((m, it) => m + (it.min || 0), 0), 0);
+  const walkMinutes = perArea.reduce((sum, a) => sum + a.core.filter(isWalk).reduce((m, it) => m + (it.min || 0), 0), 0);
+  const coreCount = perArea.reduce((n, a) => n + a.core.length, 0);
+  const extraCount = perArea.reduce((n, a) => n + a.extra.length, 0);
+
   return {
-    entry, perArea, cautions, micro,
+    entry, perArea, cautions, micro, coreMinutes, walkMinutes, coreCount, extraCount,
     redFlags: flagged,
     worst,
     tier: tierFor(worst),

@@ -90,87 +90,168 @@ export function tierFor(score) {
   return PAIN_TIERS.find((t) => s <= t.max) || PAIN_TIERS[PAIN_TIERS.length - 1];
 }
 
-/* ── 부위 × 단계별 처방 ────────────────────────────────── */
+/* ── 부위 × 단계별 처방 ────────────────────────────────
+ * core 는 "오늘 이것만 해도 된다" — 최대 3개. extra 는 여유 있을 때만.
+ * 전부 맨몸 + 의자 + 벽으로 된다. 도구가 필요한 운동은 넣지 않았다.
+ * id 는 js/exercises.js 의 설명과 이어진다. id 가 없는 항목은 운동이 아니라 지침이다.
+ * min 은 대략 걸리는 분. 오늘 총 몇 분인지 화면에 보여 주려고 적어 둔다. */
 export const PROTOCOLS = {
   neck: {
-    A: [
-      { name: '턱 당기기(친턱)', dose: '10회 × 3세트', why: '깊은 목굽힘근을 깨워 머리 무게를 분산' },
-      { name: '밴드 로우', dose: '15회 × 3세트', why: '등 상부가 버텨주면 목이 일을 덜 한다' },
-      { name: '월 슬라이드(벽 천사)', dose: '10회 × 2세트', why: '어깨뼈 상방 회전 복구' },
-      { name: '흉추 신전(폼롤러)', dose: '10회', why: '등이 굽으면 목이 대신 꺾인다' },
-      { name: '상부 승모근 스트레칭', dose: '좌우 30초 × 2', why: '과활성 근육 길이 회복' },
-    ],
-    B: [
-      { name: '친턱(가볍게)', dose: '8회 × 3세트', why: '통증 없는 범위까지만' },
-      { name: '목 등척성 6방향', dose: '방향별 5초 × 5회', why: '움직임 없이 안전하게 근신경 자극' },
-      { name: '흉추 회전(앉아서)', dose: '좌우 10회', why: '목 대신 등이 돌게 만든다' },
-      { name: '어깨 외회전(밴드)', dose: '15회 × 3세트', why: '어깨 안정화' },
-      { name: '사각근·상부승모 스트레칭', dose: '좌우 30초 × 2', why: '긴장 완화' },
-      { name: '온열 팩', dose: '15분', why: '근긴장형 통증에 효과' },
-    ],
-    C: [
-      { name: '횡격막 호흡 + 이완', dose: '5분', why: '통증 감작과 근긴장을 함께 낮춘다' },
-      { name: '친턱(아주 가볍게)', dose: '5회 × 2세트', why: '통증 0~2 범위 안에서만' },
-      { name: '온열 후 가벼운 목 회전', dose: '좌우 5회', why: '움직임을 완전히 멈추지는 않는다' },
-      { name: '20분마다 일어서기', dose: '하루 종일', why: '같은 자세 유지가 가장 큰 자극원' },
-      { name: '모니터 눈높이 재조정', dose: '즉시', why: '원인 제거가 최우선' },
-    ],
-    D: [
-      { name: '통증 유발 동작 전면 중단', dose: '—', why: '지금은 보호가 치료다' },
-      { name: '호흡 + 지지된 자세로 휴식', dose: '목 받침 사용', why: '중립 자세 유지' },
-      { name: '베개 높이 점검', dose: '즉시', why: '누운 자세가 밤새 자극한다' },
-      { name: '48시간 내 호전 없으면 진료', dose: '—', why: '단순 근긴장이 아닐 수 있다' },
-    ],
+    A: {
+      core: [
+        { id: 'chin-tuck', dose: '10회 × 3세트', min: 2, why: '머리 무게를 목 대신 깊은 근육이 받게 한다' },
+        { id: 'towel-row', dose: '15회 × 3세트', min: 3, why: '등이 버텨 주면 목이 일을 덜 한다' },
+        { id: 'wall-angel', dose: '10회 × 2세트', min: 2, why: '말린 어깨를 펴 목의 부담을 줄인다' },
+      ],
+      extra: [
+        { id: 'thoracic-ext-chair', dose: '10회', min: 2, why: '등이 굽으면 목이 대신 꺾인다' },
+        { id: 'upper-trap-stretch', dose: '좌우 30초 × 2', min: 2, why: '늘 뭉쳐 있는 곳을 풀어 둔다' },
+      ],
+    },
+    B: {
+      core: [
+        { id: 'chin-tuck', dose: '8회 × 3세트 (가볍게)', min: 2, why: '통증 없는 범위까지만' },
+        { id: 'neck-isometric', dose: '방향별 5초 × 5회', min: 3, why: '움직이지 않고 힘만 줘서 안전하게' },
+        { id: 'thoracic-rotation', dose: '좌우 10회', min: 2, why: '목 대신 등이 돌게 만든다' },
+      ],
+      extra: [
+        { id: 'upper-trap-stretch', dose: '좌우 30초 × 2', min: 2, why: '긴장 완화' },
+        { id: 'scalene-stretch', dose: '좌우 20초 × 2', min: 2, why: '고개 숙인 시간의 반작용' },
+      ],
+    },
+    C: {
+      core: [
+        { id: 'breathing', dose: '5분', min: 5, why: '통증이 심한 날의 1순위' },
+        { id: 'neck-rotation', dose: '좌우 5회', min: 1, why: '완전히 멈추지는 않는다' },
+        { id: 'stand-break', dose: '20분마다', min: 0, why: '같은 자세 유지가 가장 큰 자극원' },
+      ],
+      extra: [
+        { id: 'chin-tuck', dose: '5회 × 2세트 (아주 가볍게)', min: 1, why: '통증 0~2 범위 안에서만' },
+        { id: 'screen-height', dose: '지금 바로', min: 3, why: '원인 제거가 최우선' },
+      ],
+    },
+    D: {
+      core: [
+        { id: 'breathing', dose: '5분 × 2회', min: 10, why: '지금은 가라앉히는 것이 전부다' },
+        { dose: '통증을 키우는 동작 전면 중단', min: 0, why: '보호가 치료인 단계', name: '자극 끊기' },
+      ],
+      extra: [
+        { id: 'screen-height', dose: '지금 바로', min: 3, why: '누운 자세·베개 높이도 함께 점검' },
+        { dose: '48시간 안에 호전 없으면 진료', min: 0, why: '단순 근긴장이 아닐 수 있다', name: '진료 기준' },
+      ],
+    },
   },
+
   lowBack: {
-    A: [
-      { name: '맥길 컬업', dose: '8회 × 3세트', why: '허리를 굽히지 않고 복부를 쓴다' },
-      { name: '사이드 플랭크', dose: '좌우 20초 × 3', why: '측면 지지대 강화' },
-      { name: '버드독', dose: '좌우 8회 × 3', why: '체간 안정성 + 협응' },
-      { name: '힙 힌지(루마니안 데드리프트)', dose: '10회 × 3세트', why: '허리 대신 엉덩이로 들기' },
-      { name: '글루트 브리지', dose: '15회 × 3세트', why: '엉덩이가 약하면 허리가 대신 쓴다' },
-      { name: '걷기', dose: '30분', why: '디스크 영양 공급' },
-    ],
-    B: [
-      { name: '캣카우', dose: '10회', why: '척추 분절 가동성' },
-      { name: '데드버그', dose: '좌우 8회 × 3', why: '허리를 고정한 채 팔다리 움직이기' },
-      { name: '글루트 브리지', dose: '12회 × 3세트', why: '통증 없는 강화' },
-      { name: '햄스트링 스트레칭', dose: '좌우 30초 × 2', why: '뒤쪽 사슬 긴장 완화' },
-      { name: '고관절 굴곡근 스트레칭', dose: '좌우 30초 × 2', why: '앉아 있는 시간의 반작용' },
-      { name: '걷기', dose: '20분 × 1~2회', why: '한 번에 길게보다 나눠서' },
-    ],
-    C: [
-      { name: '횡격막 호흡', dose: '5분', why: '보호성 근경직 완화' },
-      { name: '무릎 가슴으로 당기기', dose: '좌우 20초 × 3', why: '편안한 쪽만, 통증 없는 범위' },
-      { name: '골반 전후 기울이기', dose: '10회', why: '아주 작은 움직임으로 시작' },
-      { name: '짧게 자주 걷기', dose: '10분 × 3회', why: '누워만 있으면 더 굳는다' },
-      { name: '앉는 시간 20분 제한', dose: '하루 종일', why: '앉기는 허리 디스크 압력 최대' },
-    ],
-    D: [
-      { name: '상대적 휴식(완전 침상안식 금지)', dose: '1~2일', why: '2일 넘는 누워 있기는 회복을 늦춘다' },
-      { name: '통증 없는 범위의 최소 움직임', dose: '자주', why: '굳지 않게만' },
-      { name: '누운 자세: 무릎 아래 베개', dose: '—', why: '허리 전만 감소' },
-      { name: '진료 고려 / 적색신호 확인', dose: '즉시', why: '신경 압박 배제 필요' },
-    ],
+    A: {
+      core: [
+        { id: 'bird-dog', dose: '좌우 8회 × 3세트', min: 4, why: '허리를 고정한 채 팔다리를 쓰는 연습' },
+        { id: 'glute-bridge', dose: '15회 × 3세트', min: 3, why: '엉덩이가 일하면 허리가 쉰다' },
+        { id: 'hip-hinge', dose: '10회 × 3세트', min: 3, why: '물건 들 때 허리를 지키는 동작' },
+      ],
+      extra: [
+        { id: 'mcgill-curlup', dose: '8회 × 3세트', min: 3, why: '허리를 굽히지 않고 복부를 쓴다' },
+        { id: 'side-plank', dose: '좌우 20초 × 3', min: 3, why: '옆면 지지대 강화' },
+        { id: 'walk-short', dose: '20분 × 1~2회', min: 20, why: '디스크 영양 공급' },
+      ],
+    },
+    B: {
+      core: [
+        { id: 'dead-bug', dose: '좌우 8회 × 3세트', min: 4, why: '허리에 가장 안전한 코어 운동' },
+        { id: 'glute-bridge', dose: '12회 × 3세트', min: 3, why: '통증 없는 범위의 강화' },
+        { id: 'hip-flexor-stretch', dose: '좌우 30초 × 2', min: 2, why: '앉아 있는 시간의 반작용' },
+      ],
+      extra: [
+        { id: 'cat-cow', dose: '10회', min: 2, why: '척추 마디를 푼다' },
+        { id: 'hamstring-stretch', dose: '좌우 30초 × 2', min: 2, why: '뒤쪽이 짧으면 허리가 당긴다' },
+        { id: 'walk-short', dose: '20분 × 1~2회', min: 20, why: '한 번에 길게보다 나눠서' },
+      ],
+    },
+    C: {
+      core: [
+        { id: 'breathing', dose: '5분', min: 5, why: '보호성 근경직을 먼저 푼다' },
+        { id: 'knee-to-chest', dose: '좌우 20초 × 3', min: 2, why: '편한 쪽만, 통증 없는 범위' },
+        { id: 'walk-short', dose: '10분 × 2~3회', min: 20, why: '누워만 있으면 더 굳는다' },
+      ],
+      extra: [
+        { id: 'pelvic-tilt', dose: '10회', min: 2, why: '아주 작은 움직임부터' },
+        { id: 'stand-break', dose: '앉는 시간 20분 제한', min: 0, why: '앉기는 디스크 압력이 가장 크다' },
+      ],
+    },
+    D: {
+      core: [
+        { id: 'breathing', dose: '5분 × 2회', min: 10, why: '지금은 가라앉히는 것이 전부다' },
+        { id: 'pelvic-tilt', dose: '5회 (아주 작게)', min: 1, why: '완전히 멈추면 더 굳는다' },
+      ],
+      extra: [
+        { dose: '1~2일, 완전한 침상안식은 금지', min: 0, name: '상대적 휴식', why: '2일 넘게 누워 있으면 회복이 늦어진다' },
+        { dose: '진료 고려 · 적색신호 재확인', min: 0, name: '진료 기준', why: '신경 압박 배제가 먼저다' },
+      ],
+    },
   },
+
   shoulder: {
-    A: [{ name: '밴드 외회전', dose: '15회 × 3세트', why: '회전근개 강화' },
-        { name: '페이스 풀', dose: '15회 × 3세트', why: '후면 어깨' }],
-    B: [{ name: '진자 운동', dose: '30초 × 3', why: '무부하 가동' },
-        { name: '등척성 외회전', dose: '5초 × 10', why: '통증 없는 자극' }],
-    C: [{ name: '통증 범위 내 가동만', dose: '—', why: '자극 최소화' },
-        { name: '온열 15분', dose: '—', why: '긴장 완화' }],
-    D: [{ name: '사용 중단 + 진료 고려', dose: '—', why: '구조적 손상 배제' }],
+    A: {
+      core: [
+        { id: 'prone-y', dose: '10회 × 3세트', min: 3, why: '어깨 뒤와 등을 함께 쓴다' },
+        { id: 'wall-angel', dose: '10회 × 2세트', min: 2, why: '어깨뼈가 제대로 돌게 만든다' },
+      ],
+      extra: [{ id: 'towel-row', dose: '15회 × 3세트', min: 3, why: '등 상부 강화' }],
+    },
+    B: {
+      core: [
+        { id: 'pendulum', dose: '30초 × 3', min: 2, why: '힘을 주지 않고 관절만 움직인다' },
+        { id: 'isometric-er', dose: '5초 × 10회', min: 2, why: '움직이지 않고 회전근개에 자극' },
+      ],
+      extra: [{ id: 'wall-angel', dose: '8회 (가볍게)', min: 2, why: '통증 없는 범위까지만' }],
+    },
+    C: {
+      core: [
+        { id: 'pendulum', dose: '30초 × 2', min: 1, why: '무부하 가동만 남긴다' },
+        { id: 'breathing', dose: '5분', min: 5, why: '긴장 완화' },
+      ],
+      extra: [{ id: 'stand-break', dose: '자세 자주 바꾸기', min: 0, why: '한 자세 고정이 자극원' }],
+    },
+    D: {
+      core: [{ dose: '사용 중단 · 진료 고려', min: 0, name: '팔 쓰지 않기', why: '구조적 손상 배제가 먼저다' }],
+      extra: [],
+    },
   },
+
   knee: {
-    A: [{ name: '스텝업', dose: '좌우 10회 × 3', why: '대퇴사두 + 엉덩이' },
-        { name: '벽 스쿼트', dose: '30초 × 3', why: '등척성 근력' }],
-    B: [{ name: '등척성 레그 익스텐션', dose: '20초 × 5', why: '통증 완화 효과' },
-        { name: '힙 어브덕션', dose: '15회 × 3', why: '무릎 축 정렬' }],
-    C: [{ name: '평지 걷기만', dose: '—', why: '계단·경사 회피' },
-        { name: '냉찜질 15분', dose: '—', why: '부종 관리' }],
-    D: [{ name: '체중 부하 최소화 + 진료', dose: '—', why: '손상 배제' }],
+    A: {
+      core: [
+        { id: 'step-up', dose: '좌우 10회 × 3', min: 4, why: '계단에서 쓰는 힘을 그대로 기른다' },
+        { id: 'wall-sit', dose: '30초 × 3', min: 3, why: '무릎을 덜 움직이고 힘을 키운다' },
+      ],
+      extra: [{ id: 'hip-abduction', dose: '좌우 15회 × 2', min: 3, why: '무릎 축 정렬' }],
+    },
+    B: {
+      core: [
+        { id: 'isometric-knee-ext', dose: '20초 × 5회', min: 3, why: '아픈 날에도 되는 근력 운동' },
+        { id: 'hip-abduction', dose: '좌우 15회 × 3', min: 4, why: '엉덩이 옆이 약하면 무릎이 무너진다' },
+      ],
+      extra: [{ id: 'wall-sit', dose: '20초 × 2 (얕게)', min: 2, why: '통증 없는 깊이까지만' }],
+    },
+    C: {
+      core: [
+        { id: 'walk-short', dose: '평지 10분 × 2회', min: 20, why: '계단·경사는 피한다' },
+        { id: 'isometric-knee-ext', dose: '20초 × 3회', min: 2, why: '부담 없이 힘만 유지' },
+      ],
+      extra: [],
+    },
+    D: {
+      core: [{ dose: '체중 부하 최소화 · 진료', min: 0, name: '무릎에 체중 싣지 않기', why: '손상 배제가 먼저다' }],
+      extra: [],
+    },
   },
+};
+
+/* 한 번에 보여 줄 운동 수 — 많으면 아무것도 안 하게 된다 */
+export const RX_LIMITS = {
+  topAreaCore: 3,   // 가장 아픈 부위
+  otherAreaCore: 2, // 나머지 부위
+  totalCore: 6,     // 전체 상한
 };
 
 /* ── 매일 기본 루틴(체중·혈당·통증을 동시에 건드리는 것만) ─ */
