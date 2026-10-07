@@ -360,7 +360,9 @@ export default {
     });
 
     root.querySelector('[data-share]')?.addEventListener('click', async () => {
-      const base = location.href.split('#')[0].replace(/index\.html$/, '');
+      const base = APP.siteUrl
+        ? `${APP.siteUrl.replace(/\/$/, '')}/`
+        : location.href.split('#')[0].replace(/index\.html$/, '');
       const url = `${base}landing/`;
       const payload = { title: '마이바디', text: '체중·혈당·통증을 한 화면에서 관리하는 앱이야. 설치도 가입도 없어.', url };
       try {

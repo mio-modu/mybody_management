@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="ko" data-theme="light">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>마이바디 — 주소가 바뀌었습니다</title>
+<meta name="robots" content="noindex">
+<link rel="canonical" href="https://mybodymanagement.vercel.app/">
+<link rel="icon" href="assets/icons/icon-192.png" sizes="192x192">
+<style>
+  :root {
+    color-scheme: light;
+    --bg: #EEECE6; --surface: #FFFFFF; --ink: #242219; --muted: #6F6B59;
+    --accent: #3D7A5A; --border: rgba(36,34,25,.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg:#201E16; --surface:#232118; --ink:#F3F2EE; --muted:#ACA89B;
+            --accent:#7BA58F; --border:rgba(243,242,238,.13); color-scheme: dark; }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 24px;
+    background: var(--bg); color: var(--ink); line-height: 1.6; letter-spacing: -.01em;
+    font-family: Pretendard, -apple-system, "Apple SD Gothic Neo", system-ui, sans-serif;
+  }
+  .box { max-width: 460px; width: 100%; }
+  h1 { font-size: 24px; font-weight: 700; letter-spacing: -.03em; margin: 0 0 10px; }
+  p { margin: 0 0 14px; color: var(--muted); font-size: 14.5px; }
+  .btn {
+    display: flex; align-items: center; justify-content: center; min-height: 52px;
+    border-radius: 14px; background: var(--accent); color: #fff; font-weight: 700;
+    text-decoration: none; font-size: 16px; border: 0; width: 100%; cursor: pointer;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--border); border-radius: 16px;
+    padding: 16px; margin-top: 18px;
+  }
+  .card h2 { font-size: 15px; font-weight: 700; margin: 0 0 6px; letter-spacing: -.02em; }
+  .card p { font-size: 13.5px; margin-bottom: 10px; }
+  .btn.sub { background: transparent; color: var(--ink); border: 1px solid var(--border); }
+  ol { margin: 10px 0 0; padding-left: 20px; font-size: 13.5px; color: var(--muted); }
+  code { background: var(--bg); padding: 1px 5px; border-radius: 4px; font-size: 12.5px; }
+</style>
+
+<div class="box">
+  <h1>주소가 바뀌었습니다</h1>
+  <p>마이바디는 이제 아래 주소 한 곳에서만 돌아갑니다. 이 주소는 더 쓰지 않습니다.</p>
+  <a class="btn" href="https://mybodymanagement.vercel.app/">새 주소로 가기 →</a>
+
+  <div class="card" id="rescue" hidden>
+    <h2>이 주소에 남은 기록이 있습니다</h2>
+    <p id="rescue-info"></p>
+    <button class="btn sub" id="download">기록 내려받기 (JSON)</button>
+    <ol>
+      <li>위 버튼으로 파일을 받습니다.</li>
+      <li>새 주소를 열고 <code>설정 → 백업·복원 → 파일에서 가져오기</code>.</li>
+      <li>받은 파일을 고르면 그대로 이어집니다.</li>
+    </ol>
+  </div>
+
+  <p style="margin-top:18px;font-size:12.5px">
+    기록은 주소(도메인)마다 따로 저장됩니다. 그래서 두 주소를 섞어 쓰면 기록이 갈라집니다.
+    한 곳만 쓰도록 이 주소를 정리했습니다.
+  </p>
+</div>
+
+<script>
+  // 예전 주소에 설치돼 있던 앱이 캐시된 화면을 계속 보여주지 않게 정리한다.
+  // localStorage 는 건드리지 않는다 — 아래 내려받기가 그걸 읽어야 한다.
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.getRegistrations().then(function (rs) {
+      rs.forEach(function (r) { r.unregister(); });
+    }).catch(function () {});
+  }
+  if (window.caches) {
+    caches.keys().then(function (ks) { ks.forEach(function (k) { caches.delete(k); }); }).catch(function () {});
+  }
+
+  (function () {
+    var raw = null;
+    try { raw = localStorage.getItem('mbm.state.v1'); } catch (e) { return; }
+    if (!raw) return;
+
+    var n = 0, who = [];
+    try {
+      var s = JSON.parse(raw);
+      var profiles = s.profiles || [{ data: s }];
+      profiles.forEach(function (p) {
+        var d = p.data || {};
+        n += (d.weight || []).length + (d.glucose || []).length + (d.pain || []).length + (d.labs || []).length;
+        var name = (d.profile || {}).name;
+        if (name) who.push(name);
+      });
+    } catch (e) { /* 형식이 깨졌어도 파일로는 내려받게 둔다 */ }
+
+    document.getElementById('rescue').hidden = false;
+    document.getElementById('rescue-info').textContent =
+      (who.length ? who.join(' · ') + ' — ' : '') + '기록 ' + n + '건. 새 주소로 옮기면 그대로 이어집니다.';
+
+    document.getElementById('download').addEventListener('click', function () {
+      var blob = new Blob([raw], { type: 'application/json' });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement('a');
+      var d = new Date();
+      var pad = function (x) { return String(x).padStart(2, '0'); };
+      a.href = url;
+      a.download = 'mybody-backup-' + d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate()) + '.json';
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+    });
+  })();
+</script>

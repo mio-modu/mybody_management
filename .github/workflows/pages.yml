@@ -38,17 +38,17 @@ jobs:
           echo "Settings → Pages → Build and deployment → Source 를 'GitHub Actions' 로 바꾼 뒤"
           echo "이 워크플로를 다시 실행하면 배포됩니다. 최초 1회만 필요합니다."
 
-      - name: 올릴 것만 모은다
+      # 주력 배포는 베르셀이다. 두 주소가 동시에 살아 있으면 설치한 곳에 따라
+      # 기록이 갈라지므로(브라우저 저장소는 도메인마다 따로다), 이 주소에는
+      # 새 주소 안내와 "남은 기록 내려받기"만 올린다.
+      - name: 안내 페이지만 모은다
         run: |
           mkdir -p _site
-          cp index.html manifest.webmanifest sw.js _site/
-          cp -r css js assets _site/
-          mkdir -p _site/landing
-          cp landing/index.html landing/index.single.html landing/tokens.css \
-             landing/motion.css landing/motion.js _site/landing/
-          cp -r landing/shots _site/landing/
+          cp moved/index.html _site/index.html
+          cp moved/sw.js _site/sw.js   # 예전 서비스워커를 스스로 걷어내게 한다
+          cp -r assets _site/
           touch _site/.nojekyll
-          echo "— 배포 목록 —" && find _site -type f | sort
+          find _site -type f | sort
 
       - uses: actions/upload-pages-artifact@v3
         with:

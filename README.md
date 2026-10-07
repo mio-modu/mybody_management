@@ -1,7 +1,10 @@
 # 마이바디 — 내 몸 관리 PWA
 
-**배포됨** — 앱 <https://mio-modu.github.io/mybody_management/> · 소개 페이지 <https://mio-modu.github.io/mybody_management/landing/>
-(기본 브랜치에 푸시하면 자동으로 다시 배포된다. 베르셀 설정도 들어 있어 Import 한 번이면 그쪽에서도 바로 뜬다.)
+**배포됨** — 앱 <https://mybodymanagement.vercel.app> · 소개 페이지 <https://mybodymanagement.vercel.app/landing/>
+기본 브랜치에 푸시하면 베르셀이 자동으로 다시 배포한다.
+
+> 예전 GitHub Pages 주소는 **안내 페이지로 바뀌었다.** 기록은 주소(도메인)마다 따로 저장되므로
+> 두 주소가 동시에 살아 있으면 설치한 곳에 따라 기록이 갈라진다. 그래서 한 곳만 남겼다.
 
 체중 **68kg**, 혈당, 콜레스테롤, 그리고 **목·허리 통증**을 한 화면에서 관리하는 개인용 PWA.
 설치형 앱스토어 배포가 아니라, 내 폰 홈 화면에 올려놓고 쓰는 개인 도구다.
@@ -163,37 +166,31 @@
 
 ### 1. 어딘가에 올린다 (셋 중 하나)
 
-**GitHub Pages — 이미 배포되어 있다**
-
-`.github/workflows/pages.yml` 이 기본 브랜치에 푸시될 때마다 앱과 소개 페이지를 함께 올린다.
-처음 한 번만 사람이 켜 줘야 했고(그 작업은 끝났다), 그 뒤로는 손댈 것이 없다.
-
-> 이 저장소를 복제해 처음부터 올린다면 두 가지가 필요하다.
-> **저장소가 Public** 이어야 하고(무료 플랜에서 Private 저장소는 Pages 가 막혀 있다),
-> **Settings → Pages → Source** 를 `GitHub Actions` 로 한 번 바꿔 줘야 한다.
-> Actions 기본 토큰에는 Pages 사이트를 처음 만드는 권한이 없어 이것만은 자동화가 안 된다.
-
-| | 주소 |
-|---|---|
-| 앱 | `https://mio-modu.github.io/mybody_management/` |
-| 소개 페이지 (남에게 보낼 주소) | `https://mio-modu.github.io/mybody_management/landing/` |
-
-그 다음부터는 푸시할 때마다 자동으로 다시 배포된다.
-
-**Vercel — 설정 없이 Import 만**
+**Vercel — 주력 배포처**
 
 저장소에 `vercel.json` 과 `.vercelignore` 가 들어 있어 추가 설정이 필요 없다.
+처음 연결할 때만 이렇게 한다.
 
 1. <https://vercel.com/new> → **Import Git Repository** → `mybody_management` 선택
 2. Framework Preset `Other`, Build Command·Output Directory **모두 비워 둔 채** → **Deploy**
 3. `https://<프로젝트명>.vercel.app/` 에 앱이, `/landing/` 에 소개 페이지가 뜬다
 
+그 뒤로는 푸시할 때마다 자동으로 다시 배포된다.
+다른 주소를 쓰게 되면 `js/config.js` 의 `APP.siteUrl` 을 그 주소로 바꾼다 —
+앱 안의 **공유 링크**가 이 값을 쓴다. 빈 문자열로 두면 지금 열려 있는 주소를 쓴다.
+
 `vercel.json` 이 하는 일 — 서비스워커·HTML·JS·CSS 는 항상 최신을 받게 하고(`must-revalidate`),
 아이콘과 스크린샷만 1년 캐시, 매니페스트 MIME 타입 지정, 기본 보안 헤더 3종.
 `.vercelignore` 는 문서·워크플로처럼 사이트 동작과 무관한 파일을 올리지 않는다.
 
-> GitHub Pages 와 Vercel 을 동시에 켜 둘 수 있지만, **지인에게 보낼 주소는 하나로 정하는 게 낫다.**
-> 베르셀로 가기로 했다면 Pages 는 Settings → Pages → Source 를 `None` 으로 두면 멈춘다.
+**예전 GitHub Pages 주소**
+
+`.github/workflows/pages.yml` 은 이제 앱이 아니라 `moved/` 의 **안내 페이지**를 올린다.
+
+- 새 주소로 가는 버튼
+- 그 주소에 기록이 남아 있으면 **"기록 내려받기"** 버튼이 뜬다 (새 주소에서 가져오기로 이어 쓴다)
+- `moved/sw.js` 는 **스스로를 걷어내는 서비스워커**다. 예전에 설치한 사람은 캐시된 옛 앱이
+  계속 떠서 안내를 못 보게 되는데, 이 파일이 다음 접속에서 캐시와 등록을 지우고 화면을 새로 고친다
 
 **내 컴퓨터에서만**
 ```bash
@@ -302,6 +299,7 @@ js/
   views/         onboard · today · weight · glucose · pain · labs · report · summary · settings
 vercel.json             베르셀 배포 설정 (캐시 · MIME · 보안 헤더)
 .vercelignore           베르셀에 올리지 않을 문서·도구
+moved/                  예전 GitHub Pages 주소에 올리는 안내 페이지 + 자폭 서비스워커
 landing/                T13 구도까지 적용한 랜딩 페이지 (별도 지면)
   index.single.html     공유용 한 장짜리 (색·이미지까지 전부 들어 있음)
   build-single.py       한 장짜리를 다시 굽는 스크립트
