@@ -1,0 +1,48 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [claude/personal-health-pwa-e0qi9p]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      # enablement: true 로 두면 저장소에 Pages 가 꺼져 있어도 워크플로가 켠다
+      - uses: actions/configure-pages@v5
+        with:
+          enablement: true
+
+      - name: 올릴 것만 모은다
+        run: |
+          mkdir -p _site
+          cp index.html manifest.webmanifest sw.js _site/
+          cp -r css js assets _site/
+          mkdir -p _site/landing
+          cp landing/index.html landing/index.single.html landing/tokens.css \
+             landing/motion.css landing/motion.js _site/landing/
+          cp -r landing/shots _site/landing/
+          touch _site/.nojekyll
+          echo "— 배포 목록 —" && find _site -type f | sort
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
