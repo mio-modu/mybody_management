@@ -275,8 +275,24 @@ main { padding: 14px 16px calc(84px + env(safe-area-inset-bottom)); max-width: 6
 .check input { width: 21px; height: 21px; margin-top: 1px; accent-color: var(--accent); flex: none; }
 .check .ct { flex: 1; }
 .check .cl { font-size: 13.5px; }
-.check input:checked + .ct .cl { color: var(--ink-muted); text-decoration: line-through; }
+/* 취소선은 '해치웠다'는 뜻 — 할 일 체크리스트(.task)에서만 쓴다.
+ * 모듈 선택·증상 체크처럼 '켠다/해당한다'는 뜻의 체크에는 쓰지 않는다. */
+.check.task input:checked + .ct .cl { color: var(--ink-muted); text-decoration: line-through; }
 .check .tag { font-size: 10.5px; color: var(--ink-muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 6px; }
+
+/* 끌 수 없는 기본 항목 — 회색 비활성 체크박스는 '꺼짐'으로 읽힌다.
+ * 켜져 있다는 것이 한눈에 보이도록 직접 그린다. */
+.check.locked { cursor: default; }
+.check.locked input {
+  appearance: none; -webkit-appearance: none; opacity: 1; cursor: default;
+  background: var(--accent); border: 1px solid var(--accent); border-radius: 6px;
+  display: grid; place-items: center;
+}
+.check.locked input::after {
+  content: '✓'; color: var(--on-accent); font-size: 14px; font-weight: 800; line-height: 1;
+}
+.check.locked .cl { color: var(--ink); }
+.check.locked .tag { color: var(--accent-ink); border-color: color-mix(in srgb, var(--accent) 45%, var(--border)); }
 
 /* 처방 아이템 */
 .rx { padding: 10px 0; border-top: 1px solid var(--border); }

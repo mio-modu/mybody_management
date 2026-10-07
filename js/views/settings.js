@@ -59,10 +59,11 @@ export default {
 
       <div class="card">
         <div class="card-head"><h2>내 몸 설정</h2><span class="meta">끈 것은 화면에서 사라집니다</span></div>
-        ${MODULES.map((mod) => `<label class="check">
+        ${MODULES.map((mod) => `<label class="check${mod.fixed ? ' locked' : ''}">
           <input type="checkbox" data-module="${esc(mod.id)}" ${mod.fixed ? 'checked disabled' : (hasModule(state, mod.id) ? 'checked' : '')} />
-          <span class="ct"><span class="cl">${esc(mod.label)}${mod.fixed ? ' (기본)' : ''}</span>
+          <span class="ct"><span class="cl">${esc(mod.label)}</span>
             <span style="display:block;font-size:11.5px;color:var(--ink-muted)">${esc(mod.desc)}</span></span>
+          ${mod.fixed ? '<span class="tag">항상 켜짐</span>' : ''}
         </label>`).join('')}
         <div class="section-title" data-areas-title>아픈 곳</div>
         <div class="chips" data-areas>
@@ -226,6 +227,11 @@ export default {
       location.hash = '#/start';
       ctx.rerender('top');
     });
+
+    root.querySelectorAll('.check.locked').forEach((l) => l.addEventListener('click', (e) => {
+      e.preventDefault();
+      toast('체중은 모든 계산의 기준이라 끌 수 없습니다');
+    }));
 
     const painToggle = root.querySelector('[data-module="pain"]');
     const areasTitle = root.querySelector('[data-areas-title]');

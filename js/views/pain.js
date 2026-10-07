@@ -65,7 +65,7 @@ function prescriptionBlock(state) {
       <div class="section-title">지금 1분 (앉아 있다가 바로)</div>
       <div class="chips">${rx.micro.map((m) => `<span class="chip" aria-pressed="false">${esc(m)}</span>`).join('')}</div>
 
-      <label class="check" style="margin-top:12px;border-top:1px solid var(--border)">
+      <label class="check task" style="margin-top:12px;border-top:1px solid var(--border)">
         <input type="checkbox" data-routine="r-rx" ${day.done?.includes('r-rx') ? 'checked' : ''} />
         <span class="ct"><span class="cl">오늘 처방 운동 완료</span></span>
       </label>

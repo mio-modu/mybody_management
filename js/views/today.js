@@ -152,7 +152,7 @@ function routineCard(state) {
   return `<div class="card">
     <div class="card-head"><h2>오늘 루틴</h2><span class="meta">${done.length}/${ROUTINE.length}</span></div>
     ${bar(pct, { good: pct >= 80 })}
-    ${ROUTINE.map((r) => `<label class="check">
+    ${ROUTINE.map((r) => `<label class="check task">
       <input type="checkbox" data-routine="${esc(r.id)}" ${done.includes(r.id) ? 'checked' : ''} />
       <span class="ct"><span class="cl">${esc(r.label)}</span></span>
       <span class="tag">${esc(r.tag)}</span>
