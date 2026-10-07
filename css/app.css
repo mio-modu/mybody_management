@@ -405,3 +405,50 @@ main { padding: 14px 16px calc(84px + env(safe-area-inset-bottom)); max-width: 6
 .points .pv { font-size: 34px; font-weight: 700; letter-spacing: -.03em; font-variant-numeric: tabular-nums; }
 .points .pl { font-size: 12px; color: var(--ink-muted); }
 @media (prefers-reduced-motion: reduce) { .celebrate { animation: none; } .ring .ring-fg { transition: none; } }
+
+/* ───────── 결과지 사진 보며 입력 ───────── */
+.lab-photo {
+  position: sticky; top: calc(env(safe-area-inset-top) + 56px); z-index: 10;
+  margin: 12px 0 0; padding: 8px; border-radius: var(--r-sm);
+  background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow-lift);
+}
+.lab-photo img { width: 100%; max-height: 40vh; object-fit: contain; border-radius: 6px; display: block; }
+
+/* ───────── 진료용 요약 1장 ───────── */
+.sheet {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--r);
+  padding: 22px; box-shadow: var(--shadow);
+}
+.sheet-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px;
+  padding-bottom: 12px; border-bottom: 2px solid var(--ink); }
+.sheet-head h1 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -.03em; }
+.sheet-sub { margin: 4px 0 0; font-size: 12px; color: var(--ink-2); }
+.sheet-head > p.sheet-sub { margin-top: 2px; white-space: nowrap; }
+.sheet-sec { margin-top: 18px; break-inside: avoid; }
+.sheet-sec h2 { margin: 0 0 8px; font-size: 14px; font-weight: 700; letter-spacing: -.02em;
+  display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.sheet-span { font-size: 11.5px; font-weight: 400; color: var(--ink-muted); }
+.sheet-table { width: 100%; border-collapse: collapse; font-size: 12.5px; font-variant-numeric: tabular-nums; }
+.sheet-table th, .sheet-table td { text-align: left; padding: 6px 8px; border-bottom: 1px solid var(--border); vertical-align: baseline; }
+.sheet-table thead th { font-size: 11px; color: var(--ink-muted); font-weight: 600;
+  border-bottom: 1px solid var(--baseline); }
+.sheet-table tbody th { font-weight: 600; color: var(--ink-2); white-space: nowrap; }
+.sheet-note { margin: 8px 0 0; font-size: 11.5px; color: var(--ink-muted); }
+.sheet-alert { margin: 8px 0 0; font-size: 12px; color: var(--ink);
+  background: var(--critical-wash); border-radius: var(--r-sm); padding: 8px 10px; }
+.sheet-charts { display: grid; gap: 10px; }
+.sheet-foot { margin-top: 20px; padding-top: 10px; border-top: 1px solid var(--border);
+  font-size: 11px; color: var(--ink-muted); }
+
+@media print {
+  @page { size: A4; margin: 12mm; }
+  :root { --surface: #fff; --plane: #fff; --ink: #000; --ink-2: #333; --ink-muted: #555;
+          --border: #d8d8d8; --baseline: #999; --grid: #e4e4e4; --shadow: none; }
+  html, body { background: #fff !important; }
+  .app-header, .tabbar, .no-print, .toast, .chart-tip, .chart-table { display: none !important; }
+  main { padding: 0 !important; max-width: none !important; }
+  .sheet { border: 0; border-radius: 0; box-shadow: none; padding: 0; }
+  .sheet-charts { grid-template-columns: 1fr 1fr; }
+  .chart-svg { max-width: 100%; height: auto; }
+  * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+}

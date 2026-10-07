@@ -12,6 +12,7 @@ import labs from './views/labs.js';
 import report from './views/report.js';
 import settings from './views/settings.js';
 import onboard from './views/onboard.js';
+import summary from './views/summary.js';
 
 const ROUTES = {
   '#/start': onboard,
@@ -22,6 +23,7 @@ const ROUTES = {
   '#/labs': labs,
   '#/report': report,
   '#/settings': settings,
+  '#/summary': summary,
 };
 
 const ALL_TABS = [

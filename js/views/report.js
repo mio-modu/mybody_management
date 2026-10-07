@@ -120,6 +120,12 @@ export default {
     const dayKeys = Array.from({ length: 7 }, (_, i) => dateKey(daysAgo(6 - i)));
 
     return `
+      <div class="card">
+        <div class="card-head"><h2>진료용 요약 1장</h2><span class="meta">인쇄 · PDF</span></div>
+        <div style="font-size:13px;color:var(--ink-2)">최근 90일 기록을 의사에게 보여줄 수 있는 한 장으로 정리합니다.</div>
+        <div class="btn-row" style="margin-top:10px"><a class="btn primary" href="#/summary">요약 보기</a></div>
+      </div>
+
       <div class="section-title">이번 주 집중</div>
       ${items.map((it) => `<div class="card">
         <div class="card-head"><h2>${esc(it.title)}</h2>

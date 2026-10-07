@@ -5,6 +5,7 @@ import { addEntry, removeEntry } from '../store.js';
 import { labsSummary } from '../analysis.js';
 import { chart, mountCharts } from '../chart.js';
 import { tile, badge, toast } from '../ui.js';
+import { parseLabText, parseLabDate } from '../labparse.js';
 
 /* 색 배정: HDL=계열1(녹) 좋은 쪽, 중성지방=계열2, LDL=계열3 */
 const LIPIDS = [
@@ -95,6 +96,32 @@ export default {
         ${cfgs.map((c) => chart(c)).join('')}
       </div>` : ''}
 
+      <div class="card" data-import>
+        <div class="card-head"><h2>결과지에서 가져오기</h2><span class="meta">14개를 손으로 치지 않아도 됩니다</span></div>
+
+        <div class="field">
+          <label for="lab-paste">결과지 텍스트 붙여넣기</label>
+          <textarea id="lab-paste" rows="5" placeholder="검진 결과를 문자·앱·PDF에서 복사해 그대로 붙여넣으세요.&#10;예) LDL 콜레스테롤  124  mg/dL  (0~130)"></textarea>
+        </div>
+        <div class="btn-row">
+          <button class="btn primary" type="button" data-parse>자동으로 채우기</button>
+          <button class="btn ghost" type="button" data-paste-clear>지우기</button>
+        </div>
+        <div data-parse-result></div>
+
+        <div class="section-title">종이 결과지만 있다면</div>
+        <div class="btn-row">
+          <label class="btn" for="lab-photo">결과지 사진 띄우기</label>
+          <input id="lab-photo" type="file" accept="image/*" hidden />
+          <button class="btn ghost" type="button" data-photo-clear hidden>사진 닫기</button>
+        </div>
+        <div class="note">사진은 <strong>화면에 띄워 보기만</strong> 합니다. 앱에 저장되지도, 어디로 전송되지도 않습니다.
+        아래 입력칸 위에 고정돼 있으니 앱을 왔다 갔다 하지 않고 보면서 칠 수 있습니다.</div>
+        <figure class="lab-photo" data-photo hidden>
+          <img alt="불러온 검진 결과지 사진" />
+        </figure>
+      </div>
+
       <div class="card">
         <div class="card-head"><h2>검사 결과 추가</h2><span class="meta">아는 항목만</span></div>
         <form data-lab-form>
@@ -128,6 +155,61 @@ export default {
 
   mount(root, state, ctx) {
     mountCharts(root, buildCharts(state));
+
+    const area = root.querySelector('#lab-paste');
+    const resultBox = root.querySelector('[data-parse-result]');
+
+    root.querySelector('[data-parse]')?.addEventListener('click', () => {
+      const text = area.value;
+      if (!text.trim()) { toast('붙여넣은 내용이 없습니다'); return; }
+      const { found, hits } = parseLabText(text);
+      const keys = Object.keys(found);
+      if (!keys.length) {
+        resultBox.innerHTML = '<div class="note warn">읽을 수 있는 항목을 찾지 못했습니다. 항목 이름과 숫자가 같은 줄에 있는지 확인하고, 안 되면 아래에 직접 입력하세요.</div>';
+        return;
+      }
+      keys.forEach((id) => {
+        const input = root.querySelector(`#l-${id}`);
+        if (input) input.value = found[id];
+      });
+      const d = parseLabDate(text);
+      if (d) { const di = root.querySelector('#l-date'); if (di) di.value = d; }
+
+      resultBox.innerHTML = `<div class="note">
+        <strong>${keys.length}개 항목을 채웠습니다.</strong>${d ? ` 검사일은 ${esc(d)} 로 잡았습니다.` : ''}
+        아래에서 숫자가 맞는지 꼭 한 번 확인하세요.
+        <div style="margin-top:8px">${hits.map((h) => `<span class="chip" style="margin:0 4px 4px 0;display:inline-block">${esc(LAB_FIELDS.find((f) => f.id === h.id)?.label || h.id)} ${esc(String(h.value))}</span>`).join('')}</div>
+      </div>`;
+      root.querySelector('[data-lab-form]')?.scrollIntoView({ block: 'start' });
+      toast(`${keys.length}개를 채웠습니다`);
+    });
+
+    root.querySelector('[data-paste-clear]')?.addEventListener('click', () => {
+      area.value = '';
+      resultBox.innerHTML = '';
+    });
+
+    const figure = root.querySelector('[data-photo]');
+    const img = figure?.querySelector('img');
+    const clearBtn = root.querySelector('[data-photo-clear]');
+    let objectUrl = null;
+    root.querySelector('#lab-photo')?.addEventListener('change', (e) => {
+      const file = e.target.files?.[0];
+      if (!file) return;
+      if (objectUrl) URL.revokeObjectURL(objectUrl);
+      objectUrl = URL.createObjectURL(file);
+      img.src = objectUrl;
+      figure.hidden = false;
+      clearBtn.hidden = false;
+      root.querySelector('[data-lab-form]')?.scrollIntoView({ block: 'start' });
+    });
+    clearBtn?.addEventListener('click', () => {
+      figure.hidden = true;
+      clearBtn.hidden = true;
+      if (objectUrl) { URL.revokeObjectURL(objectUrl); objectUrl = null; }
+      const fi = root.querySelector('#lab-photo');
+      if (fi) fi.value = '';
+    });
 
     root.querySelector('[data-lab-form]')?.addEventListener('submit', (e) => {
       e.preventDefault();

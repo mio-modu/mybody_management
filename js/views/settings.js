@@ -166,6 +166,16 @@ export default {
       </div>
 
       <div class="card">
+        <div class="card-head"><h2>공유</h2><span class="meta">가족 · 지인에게</span></div>
+        <div class="note">받는 사람도 각자 자기 폰에 설치해 각자의 기록을 남깁니다.
+        내 기록이 함께 가지 않습니다.</div>
+        <div class="btn-row" style="margin-top:10px">
+          <button class="btn primary" type="button" data-share>소개 링크 보내기</button>
+          <a class="btn ghost" href="./landing/index.html">소개 페이지 보기</a>
+        </div>
+      </div>
+
+      <div class="card">
         <div class="card-head"><h2>백업 · 복원</h2><span class="meta">현재 ${esc(bytes(size))}</span></div>
         <div class="note">모든 기록은 이 브라우저 안에만 저장됩니다. 서버로 전송되지 않습니다.
         브라우저 데이터를 지우면 함께 사라지니, 주 1회 내보내기를 권합니다.</div>
@@ -320,6 +330,19 @@ export default {
       const perm = await Notification.requestPermission();
       if (perm === 'granted') new Notification('마이바디', { body: '체크인 알림이 이렇게 표시됩니다.' });
       else toast('알림이 허용되지 않았습니다');
+    });
+
+    root.querySelector('[data-share]')?.addEventListener('click', async () => {
+      const base = location.href.split('#')[0].replace(/index\.html$/, '');
+      const url = `${base}landing/`;
+      const payload = { title: '마이바디', text: '체중·혈당·통증을 한 화면에서 관리하는 앱이야. 설치도 가입도 없어.', url };
+      try {
+        if (navigator.share) { await navigator.share(payload); return; }
+        await navigator.clipboard.writeText(url);
+        toast('링크를 복사했습니다');
+      } catch (err) {
+        if (err?.name !== 'AbortError') prompt('이 주소를 보내세요', url);
+      }
     });
 
     root.querySelector('[data-export]')?.addEventListener('click', () => {
