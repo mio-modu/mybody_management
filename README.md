@@ -131,11 +131,24 @@
 
 ### 1. 어딘가에 올린다 (셋 중 하나)
 
-**GitHub Pages (가장 간단)**
-1. 이 저장소 → Settings → Pages
-2. Source: `Deploy from a branch`, Branch: 이 브랜치 + `/ (root)` → Save
-3. 몇 분 뒤 `https://<계정>.github.io/mybody_management/` 로 앱이,
-   `.../mybody_management/landing/` 으로 소개 페이지가 열린다 (남에게 보낼 땐 이 주소)
+**GitHub Pages — 워크플로가 이미 들어 있다**
+
+`.github/workflows/pages.yml` 이 기본 브랜치에 푸시될 때마다 앱과 소개 페이지를 함께 배포한다.
+**최초 1회만** 저장소에서 Pages 를 켜 줘야 한다. Actions 기본 토큰에는 Pages 사이트를
+처음 만드는 권한이 없어서, 이것만은 자동화가 안 된다.
+
+1. 저장소 → **Settings → Pages**
+2. **Build and deployment → Source** 를 `GitHub Actions` 로 변경
+3. **Actions** 탭 → `Deploy to GitHub Pages` → **Run workflow**
+
+1~2분 뒤 이 주소로 열린다.
+
+| | 주소 |
+|---|---|
+| 앱 | `https://mio-modu.github.io/mybody_management/` |
+| 소개 페이지 (남에게 보낼 주소) | `https://mio-modu.github.io/mybody_management/landing/` |
+
+그 다음부터는 푸시할 때마다 자동으로 다시 배포된다.
 
 **내 컴퓨터에서만**
 ```bash

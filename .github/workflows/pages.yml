@@ -23,10 +23,20 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      # enablement: true 로 두면 저장소에 Pages 가 꺼져 있어도 워크플로가 켠다
-      - uses: actions/configure-pages@v5
+      # enablement 는 저장소에 Pages 가 꺼져 있을 때 워크플로가 켜 보게 한다.
+      # 다만 Actions 기본 토큰에는 "Pages 사이트를 처음 만드는" 권한이 없어
+      # 최초 1회는 사람이 Settings → Pages 에서 켜 줘야 한다(아래 안내 참고).
+      - id: pages
+        uses: actions/configure-pages@v5
         with:
           enablement: true
+
+      - name: Pages 가 꺼져 있을 때 안내
+        if: failure() && steps.pages.outcome == 'failure'
+        run: |
+          echo "::error::Pages 가 아직 켜져 있지 않습니다."
+          echo "Settings → Pages → Build and deployment → Source 를 'GitHub Actions' 로 바꾼 뒤"
+          echo "이 워크플로를 다시 실행하면 배포됩니다. 최초 1회만 필요합니다."
 
       - name: 올릴 것만 모은다
         run: |
