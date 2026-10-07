@@ -1,5 +1,8 @@
 # 마이바디 — 내 몸 관리 PWA
 
+**배포됨** — 앱 <https://mio-modu.github.io/mybody_management/> · 소개 페이지 <https://mio-modu.github.io/mybody_management/landing/>
+(기본 브랜치에 푸시하면 자동으로 다시 배포된다.)
+
 체중 **68kg**, 혈당, 콜레스테롤, 그리고 **목·허리 통증**을 한 화면에서 관리하는 개인용 PWA.
 설치형 앱스토어 배포가 아니라, 내 폰 홈 화면에 올려놓고 쓰는 개인 도구다.
 
@@ -131,17 +134,15 @@
 
 ### 1. 어딘가에 올린다 (셋 중 하나)
 
-**GitHub Pages — 워크플로가 이미 들어 있다**
+**GitHub Pages — 이미 배포되어 있다**
 
-`.github/workflows/pages.yml` 이 기본 브랜치에 푸시될 때마다 앱과 소개 페이지를 함께 배포한다.
-**최초 1회만** 저장소에서 Pages 를 켜 줘야 한다. Actions 기본 토큰에는 Pages 사이트를
-처음 만드는 권한이 없어서, 이것만은 자동화가 안 된다.
+`.github/workflows/pages.yml` 이 기본 브랜치에 푸시될 때마다 앱과 소개 페이지를 함께 올린다.
+처음 한 번만 사람이 켜 줘야 했고(그 작업은 끝났다), 그 뒤로는 손댈 것이 없다.
 
-1. 저장소 → **Settings → Pages**
-2. **Build and deployment → Source** 를 `GitHub Actions` 로 변경
-3. **Actions** 탭 → `Deploy to GitHub Pages` → **Run workflow**
-
-1~2분 뒤 이 주소로 열린다.
+> 이 저장소를 복제해 처음부터 올린다면 두 가지가 필요하다.
+> **저장소가 Public** 이어야 하고(무료 플랜에서 Private 저장소는 Pages 가 막혀 있다),
+> **Settings → Pages → Source** 를 `GitHub Actions` 로 한 번 바꿔 줘야 한다.
+> Actions 기본 토큰에는 Pages 사이트를 처음 만드는 권한이 없어 이것만은 자동화가 안 된다.
 
 | | 주소 |
 |---|---|
