@@ -272,10 +272,19 @@ main { padding: 14px 16px calc(84px + env(safe-area-inset-bottom)); max-width: 6
 
 .check { display: flex; align-items: flex-start; gap: 10px; padding: 9px 0; border-top: 1px solid var(--border); cursor: pointer; }
 .check:first-of-type { border-top: 0; }
-.check input { width: 21px; height: 21px; margin-top: 1px; accent-color: var(--accent); flex: none; }
+.check input { width: 21px; height: 21px; margin: 1px 0 0; accent-color: var(--accent); flex: none; }
 .check .ct { flex: 1; }
 .check .cl { font-size: 13.5px; }
-.check input:checked + .ct .cl { color: var(--ink-muted); text-decoration: line-through; }
+/* 취소선은 '오늘 할 일' 목록에만. 설정·선택 목록에 새면 지워진 항목처럼 보인다 */
+.check.is-task input:checked + .ct .cl { color: var(--ink-muted); text-decoration: line-through; }
+
+/* 끌 수 없는 항목 — 비활성 체크박스로 두면 꺼진 것처럼 보이므로 켜진 상태로 그린다 */
+.check.is-fixed { cursor: default; }
+.ck-lock {
+  width: 21px; height: 21px; border-radius: 4px; flex: none; margin-top: 1px;
+  background: var(--accent); color: var(--on-accent);
+  display: grid; place-items: center; font-size: 13px; font-weight: 700;
+}
 .check .tag { font-size: 10.5px; color: var(--ink-muted); border: 1px solid var(--border); border-radius: 999px; padding: 0 6px; }
 
 /* 처방 아이템 */

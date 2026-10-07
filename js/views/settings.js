@@ -60,11 +60,16 @@ export default {
 
       <div class="card">
         <div class="card-head"><h2>내 몸 설정</h2><span class="meta">끈 것은 화면에서 사라집니다</span></div>
-        ${MODULES.map((mod) => `<label class="check">
-          <input type="checkbox" data-module="${esc(mod.id)}" ${mod.fixed ? 'checked disabled' : (hasModule(state, mod.id) ? 'checked' : '')} />
-          <span class="ct"><span class="cl">${esc(mod.label)}${mod.fixed ? ' (기본)' : ''}</span>
+        ${MODULES.map((mod) => (mod.fixed ? `<div class="check is-fixed">
+          <span class="ck-lock" aria-hidden="true">✓</span>
+          <span class="ct"><span class="cl">${esc(mod.label)}</span>
             <span style="display:block;font-size:11.5px;color:var(--ink-muted)">${esc(mod.desc)}</span></span>
-        </label>`).join('')}
+          <span class="tag">항상 켬</span>
+        </div>` : `<label class="check">
+          <input type="checkbox" data-module="${esc(mod.id)}" ${hasModule(state, mod.id) ? 'checked' : ''} />
+          <span class="ct"><span class="cl">${esc(mod.label)}</span>
+            <span style="display:block;font-size:11.5px;color:var(--ink-muted)">${esc(mod.desc)}</span></span>
+        </label>`)).join('')}
         <div class="section-title" data-areas-title>아픈 곳</div>
         <div class="chips" data-areas>
           ${PAIN_AREAS.map((a) => `<button type="button" class="chip" data-area="${esc(a.id)}"
