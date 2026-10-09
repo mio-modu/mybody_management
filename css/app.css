@@ -502,7 +502,8 @@ details.rx[open] .rx-name { color: var(--accent-ink); }
 .how-pose { background: var(--surface-sunk); border-radius: var(--r-sm); padding: 6px; }
 .how-steps { margin: 0; padding-left: 18px; font-size: 13px; line-height: 1.6; }
 .how-steps li { margin-bottom: 4px; }
-.how-note { font-size: 12.5px; border-radius: var(--r-sm); padding: 8px 10px; margin-top: 8px; }
+.how-note { font-size: 12.5px; border-radius: var(--r-sm); padding: 8px 10px; margin-top: 8px;
+  background: var(--surface-sunk); }
 .how-note strong { display: block; font-size: 11px; margin-bottom: 2px; }
 .how-note.good { background: var(--good-wash); }
 .how-note.warn { background: var(--warning-wash); }

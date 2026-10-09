@@ -97,6 +97,7 @@ function rxItem(it, { how }) {
       </div>
       <div class="how-note good"><strong>이 느낌이면 맞다</strong> ${esc(ex.feel)}</div>
       <div class="how-note warn"><strong>흔한 실수</strong> ${esc(ex.mistake)}</div>
+      ${ex.note ? `<div class="how-note"><strong>헷갈리는 곳</strong> ${esc(ex.note)}</div>` : ''}
       <a class="btn sm ghost how-video" href="${esc(videoSearchUrl(it.id))}" target="_blank" rel="noopener noreferrer">영상으로 보기 ↗</a>
     </div>
   </details>`;
