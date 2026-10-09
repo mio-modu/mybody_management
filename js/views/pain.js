@@ -1,6 +1,6 @@
 /* 통증 — 물어보고(기록), 판단하고(단계), 조절한다(처방). 이 앱의 핵심 화면. */
 import { PAIN_TRIGGERS, RED_FLAGS, RADIATION, AVOID_LIST, PAIN_AREAS, PRINCIPLES } from '../config.js';
-import { painAreas, showHowTo } from '../profile.js';
+import { painAreas, showHowTo, areaKey } from '../profile.js';
 import { getExercise, videoSearchUrl } from '../exercises.js';
 import { poseSVG } from '../poses.js';
 import { dateKey, timeKey, esc, num, relDay } from '../utils.js';
@@ -40,8 +40,11 @@ function radiationTrend(state, areaId) {
 }
 
 /* 운동을 더하기 전에 자극을 뺀다 */
-function avoidBlock(areaIds) {
-  const picked = areaIds.map((id) => [id, AVOID_LIST[id]]).filter(([, v]) => v && v.length);
+function avoidBlock(state, areaIds) {
+  /* 허리는 협착/디스크로 피할 것이 정반대다. 아형 키를 먼저 찾고 없으면 부위 기본값. */
+  const picked = areaIds
+    .map((id) => [id, AVOID_LIST[areaKey(state, id)] || AVOID_LIST[id]])
+    .filter(([, v]) => v && v.length);
   if (!picked.length) return '';
   return `<details class="rx-extra"><summary>하지 않을 것 ${picked.reduce((n, [, v]) => n + v.length, 0)}가지</summary>
     ${picked.map(([id, list]) => {
@@ -134,13 +137,14 @@ function prescriptionBlock(state) {
         <strong>${esc(rx.tier.label)}</strong> — ${esc(rx.tier.intent)}</div>
 
       ${shown.map((a) => {
-        const pr = PRINCIPLES[a.area.id];
+        const pr = PRINCIPLES[areaKey(state, a.area.id)] || PRINCIPLES[a.area.id];
         return `
         <div class="section-title">${esc(a.area.label)} · ${esc(String(a.score))}/10 · ${esc(a.tier.label)}
           ${a.adjusted ? ' · <span style="color:var(--serious)">악화 추세라 강도를 낮췄습니다</span>' : ''}</div>
         ${pr ? `<details class="rx-extra" style="margin-bottom:8px">
           <summary>왜 이렇게 하나 — ${esc(pr.title)}</summary>
           <p class="rx-why" style="margin:8px 0">${esc(pr.body)}</p>
+          ${pr.body2 ? `<p class="rx-why" style="margin:0 0 8px">${esc(pr.body2)}</p>` : ''}
           <div class="note">${esc(pr.so)}</div>
           <div class="cue-pair">
             <div><span class="cue-k">시키는 말</span><strong>${esc(pr.cue)}</strong></div>
@@ -167,7 +171,7 @@ function prescriptionBlock(state) {
           <br/><span class="rx-why">아픈 정도보다 이 범위가 정확한 지표입니다.</span></div>`;
       }).join('')}
 
-      ${avoidBlock(shown.map((a) => a.area.id))}
+      ${avoidBlock(state, shown.map((a) => a.area.id))}
 
       ${rx.cautions.length ? `<div class="section-title">오늘 피할 것 · 바꿀 것</div>
         ${rx.cautions.map((c) => `<div class="row"><span class="grow" style="white-space:normal;color:var(--ink)">${esc(c)}</span></div>`).join('')}` : ''}

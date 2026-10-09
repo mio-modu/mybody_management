@@ -38,6 +38,7 @@ function principleBlock(key) {
   return `<details class="rx-extra" data-principle>
     <summary>왜 이렇게 하나 — ${esc(pr.title)}</summary>
     <p class="rx-why" style="margin:8px 0">${esc(pr.body)}</p>
+    ${pr.body2 ? `<p class="rx-why" style="margin:0 0 8px">${esc(pr.body2)}</p>` : ''}
     <div class="note">${esc(pr.so)}</div>
     <div class="cue-pair">
       <div><span class="cue-k">시키는 말</span><strong>${esc(pr.cue)}</strong></div>
@@ -139,13 +140,9 @@ function startBlock(state, areaId) {
 /* ── 무엇이 먹혔나 ── */
 /* 앱이 할 수 있는 일에는 끝이 있다. 그 선을 숨기지 않는다. */
 function nextStepBlock(state, areaId) {
-  const ns = NEXT_STEP[areaId];
+  /* 아형이 정해졌으면 그 아형의 다음 단계가 있다. 없으면 부위 기본값. */
+  const ns = NEXT_STEP[areaKey(state, areaId)] || NEXT_STEP[areaId];
   if (!ns) return '';
-  if (areaId === 'lowBack' && lowBackType(state) !== 'unknown') {
-    return `<div class="card"><div class="card-head"><h2>다음 단계</h2></div>
-      <p class="note">아형을 골라 두셨습니다. 기록이 쌓이면 맞게 고른 것인지도 보입니다 —
-        <strong>고른 쪽의 조치가 실제로 점수를 내리는지</strong>가 답입니다.</p></div>`;
-  }
   return `<div class="card">
     <div class="card-head"><h2>다음 단계</h2>
       ${ns.need ? '<span class="tag">여기까지가 앱의 한계</span>' : ''}</div>
