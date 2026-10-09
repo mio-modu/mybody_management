@@ -1,5 +1,5 @@
 /* 통증 — 물어보고(기록), 판단하고(단계), 조절한다(처방). 이 앱의 핵심 화면. */
-import { PAIN_TRIGGERS, RED_FLAGS } from '../config.js';
+import { PAIN_TRIGGERS, RED_FLAGS, RADIATION, AVOID_LIST, PAIN_AREAS } from '../config.js';
 import { painAreas, showHowTo } from '../profile.js';
 import { getExercise, videoSearchUrl } from '../exercises.js';
 import { poseSVG } from '../poses.js';
@@ -11,6 +11,50 @@ import { chart, mountCharts } from '../chart.js';
 import { tile, nrs, toast } from '../ui.js';
 
 let rangeDays = 30;
+
+/* 저림이 어디까지 내려오는가 — 통증 점수보다 정확한 지표다.
+ * 손끝 쪽으로 내려가면 나빠지는 중, 올라오면 좋아지는 중. */
+function radiationPicker(area, value) {
+  const scale = RADIATION[area.radiates];
+  if (!scale) return '';
+  const v = Number(value) || 0;
+  return `<div class="field" data-rad-for="${esc(area.id)}" style="margin:-4px 0 14px">
+    <label>${esc(area.label)} 저림이 어디까지 <span class="unit">내려갈수록 나빠짐</span></label>
+    <div class="chips">
+      ${scale.map((lbl, i) => `<button type="button" class="chip" data-rad="${esc(area.id)}" data-rad-v="${i}"
+        aria-pressed="${i === v}">${esc(lbl)}</button>`).join('')}
+    </div></div>`;
+}
+
+/* 같은 부위의 저림 범위가 최근에 어느 쪽으로 움직였나 */
+function radiationTrend(state, areaId) {
+  const vals = state.pain
+    .filter((r) => r.radiation && r.radiation[areaId] != null)
+    .slice(-6)
+    .map((r) => Number(r.radiation[areaId]));
+  if (vals.length < 2) return null;
+  const first = vals[0], last = vals[vals.length - 1];
+  if (last > first) return { dir: 'worse', text: '더 내려왔습니다 — 그날 한 것을 줄이세요' };
+  if (last < first) return { dir: 'better', text: '올라왔습니다 — 좋아지는 방향입니다' };
+  return { dir: 'same', text: '그대로입니다' };
+}
+
+/* 운동을 더하기 전에 자극을 뺀다 */
+function avoidBlock(areaIds) {
+  const picked = areaIds.map((id) => [id, AVOID_LIST[id]]).filter(([, v]) => v && v.length);
+  if (!picked.length) return '';
+  return `<details class="rx-extra"><summary>하지 않을 것 ${picked.reduce((n, [, v]) => n + v.length, 0)}가지</summary>
+    ${picked.map(([id, list]) => {
+      const area = PAIN_AREAS.find((a) => a.id === id);
+      return `<div class="section-title" style="margin-top:10px">${esc(area?.label || id)}</div>
+        ${list.map((x) => `<div class="rx">
+          <div class="rx-name">${esc(x.what)}</div>
+          <div class="rx-why">${esc(x.why)}</div>
+          <div class="rx-why"><strong>대신</strong> ${esc(x.how)}</div>
+        </div>`).join('')}`;
+    }).join('')}
+  </details>`;
+}
 
 function buildCharts(state) {
   const series = painAreas(state).map((a, i) => ({
@@ -102,6 +146,17 @@ function prescriptionBlock(state) {
         `).join('')}
       </details>` : ''}
 
+      ${shown.map((a) => {
+        const t = radiationTrend(state, a.area.id);
+        if (!t) return '';
+        const tone = t.dir === 'worse' ? 'alert' : t.dir === 'better' ? '' : 'warn';
+        return `<div class="note ${tone}" style="margin-top:10px">
+          <strong>${esc(a.area.label)} 저림 범위</strong> — ${esc(t.text)}
+          <br/><span class="rx-why">아픈 정도보다 이 범위가 정확한 지표입니다.</span></div>`;
+      }).join('')}
+
+      ${avoidBlock(shown.map((a) => a.area.id))}
+
       ${rx.cautions.length ? `<div class="section-title">오늘 피할 것 · 바꿀 것</div>
         ${rx.cautions.map((c) => `<div class="row"><span class="grow" style="white-space:normal;color:var(--ink)">${esc(c)}</span></div>`).join('')}` : ''}
 
@@ -146,7 +201,8 @@ export default {
       <div class="card" id="pain-form">
         <div class="card-head"><h2>지금 상태 기록</h2><span class="meta">30초</span></div>
         <form data-pain-form>
-          ${areas.map((a) => nrs(a.id, a.label, last?.scores?.[a.id] ?? 0)).join('')}
+          ${areas.map((a) => nrs(a.id, a.label, last?.scores?.[a.id] ?? 0)
+              + radiationPicker(a, last?.radiation?.[a.id] ?? 0)).join('')}
           <p class="empty" style="padding:4px 0 0">다른 부위를 추가하려면 설정 → 내 몸 설정에서 바꾸세요.</p>
 
           <div class="field" style="margin-top:14px"><label>무엇 때문에 아픈 것 같나 (복수 선택)</label>
@@ -221,7 +277,12 @@ export default {
       c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
     }));
 
-    root.querySelectorAll('.chips .chip:not([data-trigger])').forEach((c) => c.addEventListener('click', () => {
+    root.querySelectorAll('[data-rad]').forEach((c) => c.addEventListener('click', () => {
+      const box = c.closest('[data-rad-for]');
+      box.querySelectorAll('[data-rad]').forEach((o) => o.setAttribute('aria-pressed', String(o === c)));
+    }));
+
+    root.querySelectorAll('.chips .chip:not([data-trigger]):not([data-rad])').forEach((c) => c.addEventListener('click', () => {
       c.setAttribute('aria-pressed', c.getAttribute('aria-pressed') === 'true' ? 'false' : 'true');
     }));
 
@@ -245,9 +306,13 @@ export default {
       form.querySelectorAll('[data-nrs]').forEach((n) => {
         scores[n.dataset.nrs] = Number(n.querySelector('input[type="range"]').value);
       });
+      const radiation = {};
+      form.querySelectorAll('[data-rad][aria-pressed="true"]').forEach((b) => {
+        radiation[b.dataset.rad] = Number(b.dataset.radV);
+      });
       const triggers = [...form.querySelectorAll('[data-trigger][aria-pressed="true"]')].map((b) => b.dataset.trigger);
       const redFlags = [...form.querySelectorAll('[data-flag]')].filter((b) => b.checked).map((b) => b.dataset.flag);
-      const entry = { ts: `${f.get('date')}T${f.get('time')}`, scores, triggers, redFlags };
+      const entry = { ts: `${f.get('date')}T${f.get('time')}`, scores, radiation, triggers, redFlags };
       ['sleepH', 'sittingH', 'stress', 'sleepQ'].forEach((k) => { if (f.get(k) !== '') entry[k] = Number(f.get(k)); });
       if (f.get('note')) entry.note = f.get('note');
       addEntry('pain', entry);

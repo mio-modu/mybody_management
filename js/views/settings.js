@@ -82,6 +82,17 @@ export default {
             <span style="display:block;font-size:11.5px;color:var(--ink-muted)">운동 이름을 누르면 자세·단계·흔한 실수가 나옵니다. 이미 아는 동작뿐이면 꺼 두세요.</span></span>
         </label>
 
+        <div class="section-title">병력</div>
+        <p class="rx-why" style="margin:-4px 0 8px">두 칸을 나눠 둡니다. 섞이면 나중에
+          <strong>무엇이 확인된 사실이고 무엇이 짐작이었는지</strong> 알 수 없게 됩니다.
+          진료 때 그대로 읽으시면 됩니다.</p>
+        <div class="field"><label for="hx-dx">진단받은 것 <span class="unit">의사에게 들은 것만</span></label>
+          <textarea id="hx-dx" data-hx-dx rows="3"
+            placeholder="예) 2024-03 ○○정형외과 — 경추 5-6번 협착 소견">${esc(p.history?.diagnosed || '')}</textarea></div>
+        <div class="field"><label for="hx-note">그 밖에 기억해 둘 것 <span class="unit">내가 적는 것</span></label>
+          <textarea id="hx-note" data-hx-note rows="3"
+            placeholder="예) 아이들 말리다 왼쪽 엄지가 꺾임 · 왼손잡이 · 한의원 침은 효과 없었음">${esc(p.history?.notes || '')}</textarea></div>
+
         <button class="btn primary full" style="margin-top:12px" data-body-save>내 몸 설정 저장</button>
       </div>
 
@@ -269,7 +280,14 @@ export default {
       modules.weight = true;
       const picked = [...root.querySelectorAll('[data-area][aria-pressed="true"]')].map((b) => b.dataset.area);
       if (modules.pain && !picked.length) { toast('아픈 곳을 하나 이상 고르거나, 통증 관리를 꺼 주세요'); return; }
-      setProfile({ modules, painAreas: picked, showHowTo: root.querySelector('[data-howto]')?.checked !== false });
+      setProfile({
+        modules, painAreas: picked,
+        showHowTo: root.querySelector('[data-howto]')?.checked !== false,
+        history: {
+          diagnosed: root.querySelector('[data-hx-dx]')?.value.trim() || '',
+          notes: root.querySelector('[data-hx-note]')?.value.trim() || '',
+        },
+      });
       toast('내 몸 설정을 저장했습니다');
       ctx.rerender();
     });

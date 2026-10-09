@@ -21,6 +21,9 @@ function emptyProfileData(name = '') {
       heightCm: null,
       startWeightKg: null,
       memo: '',
+      /* 병력 — 내가 적은 것과 의사에게 들은 것을 나눠 둔다.
+       * 섞이면 나중에 무엇이 사실이었는지 알 수 없게 된다. */
+      history: { diagnosed: '', notes: '' },
       onboarded: false,
       showHowTo: true,
       modules: { ...DEFAULT_MODULES },
@@ -30,7 +33,7 @@ function emptyProfileData(name = '') {
     weight: [],   // {id, date, kg, bodyFat, waist, note}
     glucose: [],  // {id, ts, value, context, meal, note}
     labs: [],     // {id, date, ...LAB_FIELDS, note}
-    pain: [],     // {id, ts, scores:{}, triggers:[], redFlags:[], sleepH, sleepQ, stress, sittingH, note}
+    pain: [],     // {id, ts, scores:{}, radiation:{}, triggers:[], redFlags:[], sleepH, sleepQ, stress, sittingH, note}
     days: {},     // 'YYYY-MM-DD': {done:[routineId], waterMl, proteinG, steps, skipped:[], note}
     rewards: { custom: DEFAULT_REWARDS.map((r) => ({ ...r })), claimed: [], celebrated: null },
   };
@@ -85,6 +88,9 @@ function fillData(d = {}) {
   out.profile.modules = { ...base.profile.modules, ...((d.profile || {}).modules || {}) };
   if (!Array.isArray(out.profile.painAreas) || !out.profile.painAreas.length) {
     out.profile.painAreas = [...DEFAULT_PAIN_AREAS];
+  }
+  if (!out.profile.history || typeof out.profile.history !== 'object') {
+    out.profile.history = { diagnosed: '', notes: '' };
   }
   out.targets = { ...base.targets, ...(d.targets || {}) };
   ['weight', 'glucose', 'labs', 'pain'].forEach((k) => { out[k] = Array.isArray(d[k]) ? d[k] : []; });

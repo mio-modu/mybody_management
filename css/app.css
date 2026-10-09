@@ -235,12 +235,17 @@ main { padding: 14px 16px calc(84px + env(safe-area-inset-bottom)); max-width: 6
   background: var(--surface-sunk); border: 1px solid var(--border); border-radius: var(--r-sm);
   padding: 10px 11px; min-height: 42px; width: 100%;
 }
+/* textarea 는 cols 기본값 때문에 제 너비를 갖는다. 칸 밖으로 비어져 나가지 않게 못 박는다. */
+.field textarea { display: block; max-width: 100%; resize: vertical; line-height: 1.55; }
 .field input:focus, .field select:focus, .field textarea:focus {
   outline: 2px solid var(--accent); outline-offset: -1px; background: var(--surface);
 }
 .field .unit { font-size: 11.5px; color: var(--ink-muted); }
-.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-.grid3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+/* 칸 나누기 — time·number 입력은 제 최소 너비를 고집하므로
+ * minmax(0,1fr) 로 눌러야 좁은 화면에서 칸이 밖으로 비어져 나가지 않는다. */
+.grid2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.grid3 { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+@media (max-width: 400px) { .grid3 { grid-template-columns: minmax(0, 1fr); } }
 
 .chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .chip {

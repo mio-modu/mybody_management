@@ -57,16 +57,70 @@ export const GLUCOSE_CONTEXTS = [
 
 /* ── 통증 부위(내 약한 지점) ────────────────────────────── */
 export const PAIN_AREAS = [
-  { id: 'neck',    label: '목',      primary: true },
-  { id: 'lowBack', label: '허리',    primary: true },
-  { id: 'shoulder',label: '어깨/등', primary: false },
-  { id: 'knee',    label: '무릎',    primary: false },
+  { id: 'neck',    label: '목',       primary: true,  radiates: 'upper' },
+  { id: 'lowBack', label: '허리',     primary: true,  radiates: 'lower' },
+  { id: 'shoulder',label: '어깨/등',  primary: false, radiates: 'upper' },
+  { id: 'thumb',   label: '손 · 엄지', primary: false },
+  { id: 'knee',    label: '무릎',     primary: false },
 ];
+
+/* ── 저림이 어디까지 내려오는가 ──────────────────────────
+ * 통증 점수보다 정확한 지표다. 아픈 정도는 그날 컨디션에 흔들리지만
+ * 저리는 "범위"는 잘 안 속는다.
+ *   손끝 쪽으로 더 내려가면 → 나빠지는 중
+ *   어깨 쪽으로 올라오면   → 좋아지는 중 */
+export const RADIATION = {
+  upper: ['없음', '목·어깨에만', '팔 위쪽까지', '팔꿈치까지', '손목까지', '손끝까지'],
+  lower: ['없음', '허리에만', '엉덩이까지', '허벅지까지', '무릎 아래까지', '발끝까지'],
+};
 
 export const PAIN_TRIGGERS = [
   '장시간 앉아 있기', '장시간 서 있기', '노트북/모니터 작업', '스마트폰 고개 숙임',
   '수면 자세', '무거운 것 들기', '운동 과부하', '스트레스', '추위/찬바람', '운전', '원인 모름',
+  '고개 젖히고 돌아보기', '집는 동작(병뚜껑·열쇠)', '이 악물기', '한쪽으로 가방 들기',
 ];
+
+/* ── 부위별로 "하지 않는 것" ─────────────────────────────
+ * 운동을 더하는 것보다 자극을 빼는 것이 먼저 효과가 난다.
+ * 그래서 처방 화면에 운동과 같이 띄운다. */
+export const AVOID_LIST = {
+  neck: [
+    { what: '고개를 젖히고 동시에 돌리기', why: '신경 나가는 구멍이 가장 좁아지는 자세',
+      how: '후진할 때는 카메라·미러를 쓰고, 꼭 봐야 하면 목이 아니라 몸통째 돈다' },
+    { what: '휴대폰을 내려다보기', why: '하루 중 가장 긴 시간이라 합이 가장 크다',
+      how: '눈높이로 든다' },
+    { what: '가방을 아픈 쪽 어깨에 걸기', why: '어깨가 눌리면 신경이 아래로 당겨진다',
+      how: '반대쪽으로 옮기거나 등에 멘다' },
+    { what: '높은 베개', why: '자는 동안 목이 꺾인 채로 굳는다',
+      how: '누웠을 때 목이 수평이 되는 높이. 옆으로 잘 때 아픈 팔을 몸 아래 깔지 않는다' },
+  ],
+  thumb: [
+    { what: '엄지와 검지 끝으로 작은 것 집기', why: '손끝 힘이 밑동 관절에서 열 배 넘게 커진다',
+      how: '손 전체로 감싸거나, 고무밴드를 감아 굵게 만들어 쥔다' },
+    { what: '병뚜껑·열쇠 비틀기', why: '돌리는 힘이 관절면을 갈아낸다',
+      how: '오프너를 쓰거나 반대 손으로 돌린다' },
+    { what: '엄지로 휴대폰 받치기', why: '약한 힘이라도 오래 걸리면 쌓인다',
+      how: '손바닥에 올리거나 링홀더·그립을 쓴다' },
+  ],
+  lowBack: [
+    { what: '허리를 굽혀 물건 들기', why: '디스크 압력이 가장 커지는 동작',
+      how: '무릎을 굽혀 앉았다 일어난다' },
+    { what: '한 자세로 오래 앉아 있기', why: '앉기가 서기보다 디스크 압력이 크다',
+      how: '20~30분마다 일어난다' },
+  ],
+  shoulder: [
+    { what: '팔을 머리 위로 반복해서 올리기', why: '좁은 공간에서 힘줄이 쓸린다',
+      how: '어깨높이 아래에서 처리한다' },
+    { what: '아픈 쪽으로 누워 자기', why: '밤새 눌린다',
+      how: '반대로 눕고 팔 아래 베개를 받친다' },
+  ],
+  knee: [
+    { what: '쪼그려 앉기 · 양반다리', why: '무릎이 가장 깊게 접히는 자세',
+      how: '의자를 쓴다' },
+    { what: '내리막·계단 내려가기', why: '내려갈 때 무릎에 걸리는 힘이 더 크다',
+      how: '평지로 돌아가거나 난간을 쓴다' },
+  ],
+};
 
 /* ── 즉시 진료가 필요한 적색신호 ───────────────────────── */
 export const RED_FLAGS = [
@@ -101,38 +155,45 @@ export function tierFor(score) {
  * id 는 js/exercises.js 의 설명과 이어진다. id 가 없는 항목은 운동이 아니라 지침이다.
  * min 은 대략 걸리는 분. 오늘 총 몇 분인지 화면에 보여 주려고 적어 둔다. */
 export const PROTOCOLS = {
+  /* 목은 두 묶음으로 나눈다.
+   *   space — 신경이 나가는 구멍을 넓히는 자세. 이게 본진이다.
+   *   glide — 들러붙은 신경을 미끄러뜨린다. 보조다. 공간이 먼저다.
+   * 늘리는 것과 미끄러뜨리는 것은 다르다. 늘리면 신경 속 혈관이 같이 좁아진다. */
   neck: {
     A: {
       core: [
-        { id: 'chin-tuck', dose: '10회 × 3세트', min: 2, why: '머리 무게를 목 대신 깊은 근육이 받게 한다' },
-        { id: 'towel-row', dose: '15회 × 3세트', min: 3, why: '등이 버텨 주면 목이 일을 덜 한다' },
-        { id: 'wall-angel', dose: '10회 × 2세트', min: 2, why: '말린 어깨를 펴 목의 부담을 줄인다' },
+        { id: 'wall-occiput', group: 'space', dose: '3초 × 6회', min: 2, why: '벽이 막아 줘서 끄덕이지 않고 평행이동만 남는다' },
+        { id: 'scap-depress', group: 'space', dose: '10초 × 10회', min: 2, why: '어깨가 내려가면 그 밑 통로가 열린다' },
+        { id: 'nerve-glide-arm', group: 'glide', dose: '천천히 10회 왕복', min: 2, why: '들러붙지 않게 미끄러뜨린다' },
       ],
       extra: [
-        { id: 'thoracic-ext-chair', dose: '10회', min: 2, why: '등이 굽으면 목이 대신 꺾인다' },
-        { id: 'upper-trap-stretch', dose: '좌우 30초 × 2', min: 2, why: '늘 뭉쳐 있는 곳을 풀어 둔다' },
+        { id: 'walk-tall', group: 'space', dose: '걸을 때 1분씩', min: 0, why: '따로 시간 내지 않고 걷는 김에' },
+        { id: 'towel-row', group: 'space', dose: '15회 × 3세트', min: 3, why: '등이 버텨 주면 목이 일을 덜 한다' },
+        { id: 'wall-angel', group: 'space', dose: '10회 × 2세트', min: 2, why: '말린 어깨를 펴 목의 부담을 줄인다' },
+        { id: 'thoracic-ext-chair', group: 'space', dose: '10회', min: 2, why: '등이 굽으면 목이 대신 꺾인다' },
       ],
     },
     B: {
       core: [
-        { id: 'chin-tuck', dose: '8회 × 3세트 (가볍게)', min: 2, why: '통증 없는 범위까지만' },
-        { id: 'neck-isometric', dose: '방향별 5초 × 5회', min: 3, why: '움직이지 않고 힘만 줘서 안전하게' },
-        { id: 'thoracic-rotation', dose: '좌우 10회', min: 2, why: '목 대신 등이 돌게 만든다' },
+        { id: 'wall-occiput', group: 'space', dose: '3초 × 6회 (살짝만)', min: 2, why: '힘은 30%면 충분하다. 세게 하면 목 앞이 끌려 들어온다' },
+        { id: 'tongue-set', group: 'space', dose: '수시로', min: 1, why: '이를 물고 있으면 턱이 잠겨 머리가 대신 돈다' },
+        { id: 'nerve-glide-arm', group: 'glide', dose: '천천히 10회 왕복', min: 2, why: '저리면 범위를 줄인다. 끝에서 멈추지 않는다' },
       ],
       extra: [
-        { id: 'upper-trap-stretch', dose: '좌우 30초 × 2', min: 2, why: '긴장 완화' },
-        { id: 'scalene-stretch', dose: '좌우 20초 × 2', min: 2, why: '고개 숙인 시간의 반작용' },
+        { id: 'scap-depress', group: 'space', dose: '10초 × 8회', min: 2, why: '어깨를 귀에서 멀리' },
+        { id: 'thoracic-rotation', group: 'space', dose: '좌우 10회', min: 2, why: '목 대신 등이 돌게 만든다' },
+        { id: 'neck-isometric', group: 'space', dose: '방향별 5초 × 5회', min: 3, why: '움직이지 않고 힘만 줘서 안전하게' },
       ],
     },
     C: {
       core: [
         { id: 'breathing', dose: '5분', min: 5, why: '통증이 심한 날의 1순위' },
-        { id: 'neck-rotation', dose: '좌우 5회', min: 1, why: '완전히 멈추지는 않는다' },
         { id: 'stand-break', dose: '20분마다', min: 0, why: '같은 자세 유지가 가장 큰 자극원' },
+        { id: 'screen-height', group: 'space', dose: '지금 바로', min: 3, why: '운동보다 원인 제거가 먼저다' },
       ],
       extra: [
-        { id: 'chin-tuck', dose: '5회 × 2세트 (아주 가볍게)', min: 1, why: '통증 0~2 범위 안에서만' },
-        { id: 'screen-height', dose: '지금 바로', min: 3, why: '원인 제거가 최우선' },
+        { id: 'wall-occiput', group: 'space', dose: '3초 × 4회 (아주 가볍게)', min: 1, why: '통증 0~2 범위 안에서만' },
+        { id: 'nerve-glide-arm', group: 'glide', dose: '5회 왕복 (좁은 범위)', min: 1, why: '예민한 날은 절반만. 끝나고 저림이 남으면 과한 것' },
       ],
     },
     D: {
@@ -146,7 +207,6 @@ export const PROTOCOLS = {
       ],
     },
   },
-
   lowBack: {
     A: {
       core: [
@@ -247,6 +307,48 @@ export const PROTOCOLS = {
     },
     D: {
       core: [{ dose: '체중 부하 최소화 · 진료', min: 0, name: '무릎에 체중 싣지 않기', why: '손상 배제가 먼저다' }],
+      extra: [],
+    },
+  },
+  /* 엄지 밑동(손목과 만나는 관절)은 집는 동작에서 손끝 힘의 열 배 넘게 받는다.
+   * 그래서 쉬는 것만으로는 안 줄어든다 — 받치거나 동작을 바꿔야 한다.
+   * 가장 효과가 큰 순서: 보조기 → 집는 방식 → 운동. */
+  thumb: {
+    A: {
+      core: [
+        { id: 'thumb-fdi', dose: '10초 × 10회', min: 2, why: '늘어난 인대 대신 관절을 잡아 주는 근육' },
+        { id: 'thumb-c-hold', dose: '10초 × 10회', min: 2, why: '쥐는 모양 그대로 버티게 한다' },
+        { id: 'finger-spread', dose: '5초 × 20회', min: 2, why: '쥐기만 하는 하루의 균형을 맞춘다' },
+      ],
+      extra: [
+        { id: 'pinch-swap', dose: '늘', min: 0, why: '좋아져도 집는 습관은 그대로 간다' },
+      ],
+    },
+    B: {
+      core: [
+        { id: 'thumb-brace', dose: '아픈 일 할 때 + 잘 때', min: 1, why: '가장 싸고 가장 빨리 체감된다' },
+        { id: 'pinch-swap', dose: '늘', min: 0, why: '끝으로 집는 동작에서 레버가 최대가 된다' },
+        { id: 'thumb-fdi', dose: '10초 × 10회', min: 2, why: '관절을 조여 주는 근육을 깨운다' },
+      ],
+      extra: [
+        { id: 'thumb-c-hold', dose: '10초 × 8회', min: 2, why: '아프지 않은 선까지만' },
+        { id: 'finger-spread', dose: '5초 × 15회', min: 2, why: '손 전체를 편다' },
+      ],
+    },
+    C: {
+      core: [
+        { id: 'thumb-brace', dose: '깨어 있는 동안 대부분 + 잘 때', min: 1, why: '지금은 받치는 것이 1순위' },
+        { id: 'pinch-swap', dose: '늘', min: 0, why: '자극을 빼는 것이 운동보다 먼저다' },
+      ],
+      extra: [
+        { id: 'finger-spread', dose: '5초 × 10회 (아프지 않게)', min: 1, why: '굳지 않을 만큼만' },
+      ],
+    },
+    D: {
+      core: [
+        { dose: '집는 동작 전면 중단 · 보조기 착용', min: 0, name: '엄지에 힘 싣지 않기', why: '지금은 보호가 전부다' },
+        { dose: '엑스레이 확인', min: 0, name: '정형외과 (수부 전공)', why: '어긋난 채 붙었는지가 앞으로를 완전히 바꾼다' },
+      ],
       extra: [],
     },
   },
