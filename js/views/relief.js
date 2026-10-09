@@ -4,11 +4,11 @@
  * 그리고 이 기록만이 답할 수 있는 질문이 하나 있다 — 무엇이 나에게 실제로 먹히나.
  * 남의 평균이 아니라 내 몸에서 나온 숫자라서, 적은 횟수로도 쓸모가 있다.
  * 다만 적을 때 숫자를 들이밀면 우연을 실력으로 착각하므로 n 이 기준 미만이면 감춘다. */
-import { PRINCIPLES, RELIEF_ACTIONS, RELIEF_MIN_N, PAIN_AREAS } from '../config.js';
-import { painAreas } from '../profile.js';
+import { PRINCIPLES, RELIEF_ACTIONS, RELIEF_MIN_N, PAIN_AREAS, LOWBACK_TYPES, NEXT_STEP } from '../config.js';
+import { painAreas, areaKey, lowBackType } from '../profile.js';
 import { getExercise } from '../exercises.js';
 import { esc, num, relDay, fmtDateTime } from '../utils.js';
-import { openRelief, startRelief, finishRelief, cancelRelief, removeEntry } from '../store.js';
+import { openRelief, startRelief, finishRelief, cancelRelief, removeEntry, setProfile } from '../store.js';
 import { reliefEffects } from '../analysis.js';
 import { tile, toast } from '../ui.js';
 
@@ -18,9 +18,9 @@ function actionName(it) {
   return getExercise(it.id)?.name || it.id;
 }
 function nameOfId(id, areaId = null) {
-  /* 부위를 알면 그 목록부터, 모르면(효과 표처럼 부위가 섞인 자리) 전 부위를 뒤진다.
-   * 못 찾아서 id 가 그대로 나오면 사용자에게는 암호처럼 보인다. */
-  const lists = areaId ? [RELIEF_ACTIONS[areaId] || []] : Object.values(RELIEF_ACTIONS);
+  /* 부위를 알아도 아형 목록에만 있는 조치가 있으므로, 못 찾으면 전 부위를 뒤진다.
+   * id 가 그대로 나오면 사용자에게는 암호처럼 보인다. */
+  const lists = Object.values(RELIEF_ACTIONS);
   for (const list of lists) {
     const found = list.find((a) => a.id === id);
     if (found) return actionName(found);
@@ -32,8 +32,8 @@ function areaLabel(id) {
 }
 
 /* 부위의 원리 — 운동보다 먼저 온다. 한 번 읽으면 접어 둘 수 있다. */
-function principleBlock(areaId) {
-  const pr = PRINCIPLES[areaId];
+function principleBlock(key) {
+  const pr = PRINCIPLES[key];
   if (!pr) return '';
   return `<details class="rx-extra" data-principle>
     <summary>왜 이렇게 하나 — ${esc(pr.title)}</summary>
@@ -81,9 +81,24 @@ function openBlock(state, open) {
 }
 
 /* ── 새로 시작할 때 ── */
+function subtypeBlock(state, areaId) {
+  if (areaId !== 'lowBack') return '';
+  const cur = lowBackType(state);
+  const info = LOWBACK_TYPES.find((t) => t.id === cur);
+  return `<div class="field" style="margin-top:10px"><label>허리는 어느 쪽인가요
+      <span class="unit">둘은 편해지는 방향이 정반대입니다</span></label>
+    <div class="chips" data-lb-types>
+      ${LOWBACK_TYPES.map((t) => `<button type="button" class="chip" data-lb="${esc(t.id)}"
+        aria-pressed="${t.id === cur}">${esc(t.label)}</button>`).join('')}
+    </div>
+    <p class="note" style="margin-top:6px">${esc(info?.desc || '')}</p>
+  </div>`;
+}
+
 function startBlock(state, areaId) {
   const areas = painAreas(state);
-  const list = RELIEF_ACTIONS[areaId] || [];
+  const key = areaKey(state, areaId);
+  const list = RELIEF_ACTIONS[key] || RELIEF_ACTIONS[areaId] || [];
   return `
     <div class="card" data-start>
       <div class="card-head"><h2>지금 불편한 곳</h2><span class="meta">1분</span></div>
@@ -93,7 +108,8 @@ function startBlock(state, areaId) {
           aria-pressed="${a.id === areaId}">${esc(a.label)}</button>`).join('')}
       </div>
 
-      ${principleBlock(areaId)}
+      ${subtypeBlock(state, areaId)}
+      ${principleBlock(key)}
 
       <div class="nrs" data-before style="margin-top:12px">
         <div class="nrs-head"><span class="name">지금 몇 점인가</span>
@@ -121,6 +137,23 @@ function startBlock(state, areaId) {
 }
 
 /* ── 무엇이 먹혔나 ── */
+/* 앱이 할 수 있는 일에는 끝이 있다. 그 선을 숨기지 않는다. */
+function nextStepBlock(state, areaId) {
+  const ns = NEXT_STEP[areaId];
+  if (!ns) return '';
+  if (areaId === 'lowBack' && lowBackType(state) !== 'unknown') {
+    return `<div class="card"><div class="card-head"><h2>다음 단계</h2></div>
+      <p class="note">아형을 골라 두셨습니다. 기록이 쌓이면 맞게 고른 것인지도 보입니다 —
+        <strong>고른 쪽의 조치가 실제로 점수를 내리는지</strong>가 답입니다.</p></div>`;
+  }
+  return `<div class="card">
+    <div class="card-head"><h2>다음 단계</h2>
+      ${ns.need ? '<span class="tag">여기까지가 앱의 한계</span>' : ''}</div>
+    <div class="note ${ns.need ? 'warn' : ''}"><strong>${esc(ns.what)}</strong></div>
+    <p class="note">${esc(ns.why)}</p>
+  </div>`;
+}
+
 function effectBlock(state) {
   const eff = reliefEffects(state);
   if (!eff.n) {
@@ -203,6 +236,7 @@ export default {
       </div>
 
       ${open ? openBlock(state, open) : startBlock(state, areaId)}
+      ${nextStepBlock(state, areaId)}
       ${effectBlock(state)}
       ${historyBlock(state)}
 
@@ -224,6 +258,12 @@ export default {
     }));
 
     /* 조치 체크 */
+    root.querySelectorAll('[data-lb]').forEach((b) => b.addEventListener('click', () => {
+      setProfile({ lowBackType: b.dataset.lb });
+      toast('허리 아형을 바꿨습니다 — 조치가 다시 계산됩니다');
+      ctx.rerender();
+    }));
+
     root.querySelectorAll('[data-rl-pick] input').forEach((cb) => cb.addEventListener('change', () => {
       cb.closest('[data-rl-pick]').setAttribute('data-on', cb.checked ? '1' : '0');
     }));

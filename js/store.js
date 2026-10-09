@@ -24,6 +24,7 @@ function emptyProfileData(name = '') {
       /* 병력 — 내가 적은 것과 의사에게 들은 것을 나눠 둔다.
        * 섞이면 나중에 무엇이 사실이었는지 알 수 없게 된다. */
       history: { diagnosed: '', notes: '' },
+      lowBackType: 'unknown',   // unknown | stenosis | disc — 협착과 디스크는 처방이 정반대다
       onboarded: false,
       showHowTo: true,
       modules: { ...DEFAULT_MODULES },
