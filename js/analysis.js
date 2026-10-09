@@ -143,3 +143,33 @@ export function strengthWord(r) {
   if (a >= 0.3) return '보통';
   return '약함';
 }
+
+/* ── 조치별 효과 ─────────────────────────────────────
+ * "무엇이 나에게 실제로 먹히나"에 답하는 유일한 계산이다.
+ * 남의 평균이 아니라 내 기록이므로 n 이 작아도 의미가 있지만,
+ * 작을 때 숫자를 들이밀면 우연을 실력으로 착각하게 된다.
+ * 그래서 n 을 항상 같이 돌려주고, 화면이 기준 미만이면 숫자를 감춘다. */
+export function reliefEffects(state, { areaId = null } = {}) {
+  const done = (state.relief || []).filter(
+    (r) => r.after != null && (!areaId || r.areaId === areaId),
+  );
+  const byAction = new Map();
+  done.forEach((r) => {
+    const drop = Number(r.before) - Number(r.after);
+    (r.actions || []).forEach((id) => {
+      const cur = byAction.get(id) || { id, n: 0, sum: 0, better: 0 };
+      cur.n += 1; cur.sum += drop; if (drop > 0) cur.better += 1;
+      byAction.set(id, cur);
+    });
+  });
+  const rows = [...byAction.values()]
+    .map((a) => ({ ...a, avg: a.n ? a.sum / a.n : 0 }))
+    .sort((a, b) => b.avg - a.avg || b.n - a.n);
+  const totalDrop = done.reduce((t, r) => t + (Number(r.before) - Number(r.after)), 0);
+  return {
+    rows,
+    n: done.length,
+    avgDrop: done.length ? totalDrop / done.length : null,
+    betterRate: done.length ? done.filter((r) => r.after < r.before).length / done.length : null,
+  };
+}

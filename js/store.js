@@ -34,6 +34,9 @@ function emptyProfileData(name = '') {
     glucose: [],  // {id, ts, value, context, meal, note}
     labs: [],     // {id, date, ...LAB_FIELDS, note}
     pain: [],     // {id, ts, scores:{}, radiation:{}, triggers:[], redFlags:[], sleepH, sleepQ, stress, sittingH, note}
+    /* 증상이 올라왔을 때 → 조치 → 그 뒤 상태. after 가 null 이면 아직 진행 중이다.
+     * 이 기록만이 "무엇이 나에게 실제로 먹히나"에 답한다. */
+    relief: [],   // {id, areaId, before, actions:[id], startTs, after, doneTs, note}
     days: {},     // 'YYYY-MM-DD': {done:[routineId], waterMl, proteinG, steps, skipped:[], note}
     rewards: { custom: DEFAULT_REWARDS.map((r) => ({ ...r })), claimed: [], celebrated: null },
   };
@@ -93,7 +96,7 @@ function fillData(d = {}) {
     out.profile.history = { diagnosed: '', notes: '' };
   }
   out.targets = { ...base.targets, ...(d.targets || {}) };
-  ['weight', 'glucose', 'labs', 'pain'].forEach((k) => { out[k] = Array.isArray(d[k]) ? d[k] : []; });
+  ['weight', 'glucose', 'labs', 'pain', 'relief'].forEach((k) => { out[k] = Array.isArray(d[k]) ? d[k] : []; });
   out.days = d.days && typeof d.days === 'object' ? d.days : {};
   out.rewards = { ...base.rewards, ...(d.rewards || {}) };
   if (!Array.isArray(out.rewards.custom) || !out.rewards.custom.length) out.rewards.custom = base.rewards.custom;
@@ -148,7 +151,7 @@ export function listProfiles() {
     name: p.data.profile.name || '이름 없음',
     active: p.id === root.activeId,
     onboarded: !!p.data.profile.onboarded,
-    entries: p.data.weight.length + p.data.glucose.length + p.data.pain.length,
+    entries: p.data.weight.length + p.data.glucose.length + p.data.pain.length + (p.data.relief?.length || 0),
   }));
 }
 
@@ -204,7 +207,7 @@ export function removeEntry(kind, id) {
 }
 
 function sortKind(kind) {
-  const key = kind === 'weight' || kind === 'labs' ? 'date' : 'ts';
+  const key = kind === 'weight' || kind === 'labs' ? 'date' : kind === 'relief' ? 'startTs' : 'ts';
   state[kind].sort((a, b) => String(a[key]).localeCompare(String(b[key])));
 }
 
@@ -239,6 +242,30 @@ export function toggleRoutine(dateKey, routineId) {
   return day;
 }
 
+/* ── 증상 대처 ───────────────────────────────────────
+ * 시작하면 after 가 비어 있는 기록이 하나 생기고, 끝내면 그 기록이 닫힌다.
+ * 열린 기록은 하나만 둔다 — 두 개가 열려 있으면 무엇의 결과인지 알 수 없다. */
+export function openRelief() {
+  return state.relief.find((r) => r.after == null) || null;
+}
+
+export function startRelief({ areaId, before, actions }) {
+  const prev = openRelief();
+  if (prev) removeEntry('relief', prev.id);   // 열린 것을 덮어쓴다
+  return addEntry('relief', {
+    areaId, before: Number(before), actions: [...actions],
+    startTs: new Date().toISOString(), after: null, doneTs: null,
+  });
+}
+
+export function finishRelief(id, { after, note = '' }) {
+  return updateEntry('relief', id, {
+    after: Number(after), doneTs: new Date().toISOString(), note,
+  });
+}
+
+export function cancelRelief(id) { removeEntry('relief', id); }
+
 export function setTargets(patch) { Object.assign(state.targets, patch); save(); }
 export function setProfile(patch) { Object.assign(state.profile, patch); save(); }
 export function setSettings(patch) { Object.assign(root.settings, patch); save(); }
@@ -264,7 +291,7 @@ export function importJSON(text, { merge = false } = {}) {
     incoming.profiles.forEach((inc) => {
       const mine = root.profiles.find((p) => p.id === inc.id);
       if (!mine) { root.profiles.push(inc); return; }
-      ['weight', 'glucose', 'labs', 'pain'].forEach((kind) => {
+      ['weight', 'glucose', 'labs', 'pain', 'relief'].forEach((kind) => {
         const seen = new Set(mine.data[kind].map((r) => r.id));
         mine.data[kind] = mine.data[kind]
           .concat(inc.data[kind].filter((r) => !seen.has(r.id)))

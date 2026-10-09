@@ -1,6 +1,7 @@
 /* 홈 — "지금 뭘 해야 하는지"만 보여주는 화면 */
 import { ROUTINE } from '../config.js';
 import { hasModule, painAreas } from '../profile.js';
+import { openRelief } from '../store.js';
 import { dateKey, esc, num, signed, relDay, fmtDateTime } from '../utils.js';
 import { toggleRoutine, setDay, upsertWeight, addEntry } from '../store.js';
 import { pending, skipToday, currentSlot, gapDays } from '../checkin.js';
@@ -91,6 +92,28 @@ function checkinCard(state) {
       <a class="btn sm primary" href="${esc(it.route)}">기록</a>
       <button class="btn sm ghost" data-skip="${esc(it.id)}" aria-label="오늘은 건너뛰기">나중</button>
     </div>`).join('')}
+  </div>`;
+}
+
+/* 지금 불편한 순간에 가장 먼저 눌리는 자리. 통증 기록보다 위에 둔다 —
+ * 아플 때 사람은 "오늘 몇 점인가"를 적고 싶지 않고 뭘 할지 알고 싶어 한다. */
+function reliefCard(state) {
+  if (!hasModule(state, 'pain')) return '';
+  const open = openRelief();
+  if (open) {
+    const mins = Math.max(0, Math.round((Date.now() - new Date(open.startTs)) / 60000));
+    return `<div class="card">
+      <div class="card-head"><h2>대처 진행 중</h2><span class="meta">${esc(String(mins))}분 전 시작</span></div>
+      <p class="note">조치를 하고 나서 지금 어떤지 적으면 한 바퀴가 닫힙니다.</p>
+      <a class="btn primary full" href="#/relief">결과 기록하기</a>
+    </div>`;
+  }
+  return `<div class="card">
+    <div class="card-head"><h2>지금 불편한가요</h2><span class="meta">1분</span></div>
+    <p class="note">어디가 어떤지 고르면 <strong>그 자리에서 할 수 있는 조치</strong>가 뜨고,
+      하고 나서 어땠는지까지 한 바퀴로 기록됩니다.
+      쌓이면 <strong>무엇이 나에게 실제로 먹히는지</strong>가 보입니다.</p>
+    <a class="btn primary full" href="#/relief">지금 대처하기</a>
   </div>`;
 }
 
@@ -234,6 +257,7 @@ export default {
           ? `<div class="note warn" style="margin-top:8px">감량 속도가 주당 ${esc(num(-w.perWeek, 2))}kg입니다. 목표 상한(${esc(num(state.targets.weightPaceKgPerWeek, 1))}kg)보다 빠릅니다 — 근손실·탈모·담석 위험이 올라가니 단백질과 수면을 먼저 확보하세요.</div>` : ''}
       </div>
 
+      ${reliefCard(state)}
       ${painCard(state)}
       ${quickCard(state)}
       ${routineCard(state)}

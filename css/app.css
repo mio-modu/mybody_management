@@ -512,3 +512,14 @@ details.rx[open] .rx-name { color: var(--accent-ink); }
 details.rx-extra { margin-top: 10px; border-top: 1px solid var(--border); padding-top: 6px; }
 details.rx-extra > summary { cursor: pointer; font-size: 13px; font-weight: 600; color: var(--accent-ink); padding: 8px 0; }
 @media (prefers-reduced-motion: reduce) { .rx-chev { transition: none; } }
+
+/* ── 대처 화면 ─────────────────────────────────────── */
+.cue-pair { display: grid; gap: 8px; margin-top: 10px; }
+.cue-pair > div { background: var(--surface-sunk); border-radius: var(--r-sm); padding: 10px 12px; }
+.cue-k { display: block; font-family: var(--mono); font-size: 10.5px; color: var(--ink-muted);
+  letter-spacing: .06em; margin-bottom: 2px; }
+.relief-strip { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap;
+  background: var(--surface-sunk); border-radius: var(--r-sm); padding: 12px 14px; }
+.relief-strip .grow { flex: 1 1 160px; min-width: 0; }
+.relief-strip .chip { margin: 2px 4px 0 0; }
+.big-n { font-size: 26px; font-weight: 700; letter-spacing: -.03em; line-height: 1.1; }

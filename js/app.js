@@ -10,6 +10,7 @@ import today from './views/today.js';
 import weight from './views/weight.js';
 import glucose from './views/glucose.js';
 import pain from './views/pain.js';
+import relief from './views/relief.js';
 import labs from './views/labs.js';
 import report from './views/report.js';
 import settings from './views/settings.js';
@@ -22,6 +23,7 @@ const ROUTES = {
   '#/weight': weight,
   '#/glucose': glucose,
   '#/pain': pain,
+  '#/relief': relief,
   '#/labs': labs,
   '#/report': report,
   '#/settings': settings,
@@ -33,6 +35,7 @@ const ALL_TABS = [
   { href: '#/weight', icon: '⚖', label: '체중', module: 'weight' },
   { href: '#/glucose', icon: '◍', label: '혈당', module: 'glucose' },
   { href: '#/pain', icon: '✚', label: '통증', module: 'pain' },
+  { href: '#/relief', icon: '◆', label: '대처', module: 'pain' },
   { href: '#/report', icon: '▤', label: '리포트', module: null },
 ];
 

@@ -1,5 +1,5 @@
 /* 통증 — 물어보고(기록), 판단하고(단계), 조절한다(처방). 이 앱의 핵심 화면. */
-import { PAIN_TRIGGERS, RED_FLAGS, RADIATION, AVOID_LIST, PAIN_AREAS } from '../config.js';
+import { PAIN_TRIGGERS, RED_FLAGS, RADIATION, AVOID_LIST, PAIN_AREAS, PRINCIPLES } from '../config.js';
 import { painAreas, showHowTo } from '../profile.js';
 import { getExercise, videoSearchUrl } from '../exercises.js';
 import { poseSVG } from '../poses.js';
@@ -133,11 +133,22 @@ function prescriptionBlock(state) {
       <div class="note ${rx.tier.tone === 'good' ? '' : 'warn'}">
         <strong>${esc(rx.tier.label)}</strong> — ${esc(rx.tier.intent)}</div>
 
-      ${shown.map((a) => `
+      ${shown.map((a) => {
+        const pr = PRINCIPLES[a.area.id];
+        return `
         <div class="section-title">${esc(a.area.label)} · ${esc(String(a.score))}/10 · ${esc(a.tier.label)}
           ${a.adjusted ? ' · <span style="color:var(--serious)">악화 추세라 강도를 낮췄습니다</span>' : ''}</div>
+        ${pr ? `<details class="rx-extra" style="margin-bottom:8px">
+          <summary>왜 이렇게 하나 — ${esc(pr.title)}</summary>
+          <p class="rx-why" style="margin:8px 0">${esc(pr.body)}</p>
+          <div class="note">${esc(pr.so)}</div>
+          <div class="cue-pair">
+            <div><span class="cue-k">시키는 말</span><strong>${esc(pr.cue)}</strong></div>
+            <div><span class="cue-k">확인하는 말</span><strong>${esc(pr.check)}</strong></div>
+          </div>
+        </details>` : ''}
         ${a.core.map((it) => rxItem(it, { how })).join('')}
-      `).join('')}
+      `;}).join('')}
 
       ${extras.length ? `<details class="rx-extra">
         <summary>여유 있으면 더 (${esc(String(rx.extraCount))}가지)</summary>
