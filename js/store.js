@@ -38,6 +38,9 @@ function emptyProfileData(name = '') {
     /* 증상이 올라왔을 때 → 조치 → 그 뒤 상태. after 가 null 이면 아직 진행 중이다.
      * 이 기록만이 "무엇이 나에게 실제로 먹히나"에 답한다. */
     relief: [],   // {id, areaId, before, actions:[id], startTs, after, doneTs, note}
+    /* 무엇을 언제 바꿨는가. 사람도 AI도 시간 간격을 잘 기억하지 못한다.
+     * "자세를 바꾼 지 며칠째"를 앱이 대신 센다 — 하루 호전과 열흘 유지는 다른 이야기다. */
+    milestones: [], // {id, date, what, areaId, note}
     days: {},     // 'YYYY-MM-DD': {done:[routineId], waterMl, proteinG, steps, skipped:[], note}
     rewards: { custom: DEFAULT_REWARDS.map((r) => ({ ...r })), claimed: [], celebrated: null },
   };
@@ -97,7 +100,7 @@ function fillData(d = {}) {
     out.profile.history = { diagnosed: '', notes: '' };
   }
   out.targets = { ...base.targets, ...(d.targets || {}) };
-  ['weight', 'glucose', 'labs', 'pain', 'relief'].forEach((k) => { out[k] = Array.isArray(d[k]) ? d[k] : []; });
+  ['weight', 'glucose', 'labs', 'pain', 'relief', 'milestones'].forEach((k) => { out[k] = Array.isArray(d[k]) ? d[k] : []; });
   out.days = d.days && typeof d.days === 'object' ? d.days : {};
   out.rewards = { ...base.rewards, ...(d.rewards || {}) };
   if (!Array.isArray(out.rewards.custom) || !out.rewards.custom.length) out.rewards.custom = base.rewards.custom;
@@ -208,7 +211,7 @@ export function removeEntry(kind, id) {
 }
 
 function sortKind(kind) {
-  const key = kind === 'weight' || kind === 'labs' ? 'date' : kind === 'relief' ? 'startTs' : 'ts';
+  const key = kind === 'weight' || kind === 'labs' || kind === 'milestones' ? 'date' : kind === 'relief' ? 'startTs' : 'ts';
   state[kind].sort((a, b) => String(a[key]).localeCompare(String(b[key])));
 }
 
@@ -267,6 +270,36 @@ export function finishRelief(id, { after, note = '' }) {
 
 export function cancelRelief(id) { removeEntry('relief', id); }
 
+/* ── 경과 ────────────────────────────────────────────
+ * 마지막으로 무언가를 기록한 날로부터 며칠이 지났는가.
+ * 오랜만에 열었을 때 그 간격 자체가 정보다. */
+export function daysSinceLastEntry() {
+  const stamps = [
+    ...state.weight.map((r) => r.date),
+    ...state.labs.map((r) => r.date),
+    ...state.glucose.map((r) => r.ts),
+    ...state.pain.map((r) => r.ts),
+    ...state.relief.map((r) => r.startTs),
+    ...(state.milestones || []).map((r) => r.date),
+  ].filter(Boolean).map((t) => new Date(String(t).slice(0, 10)).getTime()).filter((n) => !Number.isNaN(n));
+  if (!stamps.length) return null;
+  const last = Math.max(...stamps);
+  const today = new Date(new Date().toISOString().slice(0, 10)).getTime();
+  return Math.max(0, Math.round((today - last) / 86400000));
+}
+
+/* 그 변화를 시작한 지 며칠째인가. 하루 호전과 열흘 유지는 다른 이야기다. */
+export function daysSince(dateStr) {
+  const d = new Date(String(dateStr).slice(0, 10)).getTime();
+  if (Number.isNaN(d)) return null;
+  const today = new Date(new Date().toISOString().slice(0, 10)).getTime();
+  return Math.max(0, Math.round((today - d) / 86400000)) + 1;   // 시작한 날이 1일째
+}
+
+export function addMilestone({ date, what, areaId = '', note = '' }) {
+  return addEntry('milestones', { date, what, areaId, note });
+}
+
 export function setTargets(patch) { Object.assign(state.targets, patch); save(); }
 export function setProfile(patch) { Object.assign(state.profile, patch); save(); }
 export function setSettings(patch) { Object.assign(root.settings, patch); save(); }
@@ -292,7 +325,7 @@ export function importJSON(text, { merge = false } = {}) {
     incoming.profiles.forEach((inc) => {
       const mine = root.profiles.find((p) => p.id === inc.id);
       if (!mine) { root.profiles.push(inc); return; }
-      ['weight', 'glucose', 'labs', 'pain', 'relief'].forEach((kind) => {
+      ['weight', 'glucose', 'labs', 'pain', 'relief', 'milestones'].forEach((kind) => {
         const seen = new Set(mine.data[kind].map((r) => r.id));
         mine.data[kind] = mine.data[kind]
           .concat(inc.data[kind].filter((r) => !seen.has(r.id)))

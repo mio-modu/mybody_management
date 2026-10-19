@@ -7,8 +7,9 @@
 import { PRINCIPLES, RELIEF_ACTIONS, RELIEF_MIN_N, PAIN_AREAS, LOWBACK_TYPES, NEXT_STEP } from '../config.js';
 import { painAreas, areaKey, lowBackType } from '../profile.js';
 import { getExercise } from '../exercises.js';
-import { esc, num, relDay, fmtDateTime } from '../utils.js';
-import { openRelief, startRelief, finishRelief, cancelRelief, removeEntry, setProfile } from '../store.js';
+import { esc, num, relDay, fmtDateTime, dateKey, fmtDate } from '../utils.js';
+import { openRelief, startRelief, finishRelief, cancelRelief, removeEntry, setProfile,
+  addMilestone, daysSince, daysSinceLastEntry } from '../store.js';
 import { reliefEffects } from '../analysis.js';
 import { tile, toast } from '../ui.js';
 
@@ -138,6 +139,47 @@ function startBlock(state, areaId) {
 }
 
 /* ── 무엇이 먹혔나 ── */
+/* ── 경과 ────────────────────────────────────────────
+ * 무엇을 언제 바꿨는지를 적어 두면 "며칠째"를 앱이 센다.
+ * 사람도 AI도 간격을 잘 기억하지 못한다. 하루 호전과 열흘 유지는 다른 이야기인데,
+ * 적어 두지 않으면 둘이 똑같이 "좋아졌다" 한 줄로 남는다. */
+function milestoneBlock(state) {
+  const rows = [...(state.milestones || [])].reverse();
+  const gap = daysSinceLastEntry();
+  return `<div class="card">
+    <div class="card-head"><h2>무엇을 언제 바꿨나</h2>
+      ${gap != null && gap >= 3 ? `<span class="tag">마지막 기록 ${esc(String(gap))}일 전</span>` : ''}</div>
+
+    ${rows.length ? rows.map((m) => {
+      const d = daysSince(m.date);
+      return `<div class="row">
+        <span class="val" style="min-width:66px;color:var(--accent)">${esc(String(d))}일째</span>
+        <span class="grow" style="white-space:normal">
+          <strong>${esc(m.what)}</strong>
+          <span class="note"> · ${esc(fmtDate(m.date))}${m.note ? ` · ${esc(m.note)}` : ''}</span></span>
+        <button class="btn sm ghost" data-ms-del="${esc(m.id)}" aria-label="삭제">✕</button>
+      </div>`;
+    }).join('') : `<div class="empty">자세를 바꾸거나 물건을 들였을 때 한 줄 적어 두세요.<br/>
+      그래야 <strong>며칠째인지</strong>가 남습니다 — 하루 좋아진 것과 열흘 유지된 것은 다른 이야기입니다.</div>`}
+
+    <details class="rx-extra" style="margin-top:10px">
+      <summary>바꾼 것 적기</summary>
+      <form data-ms-form style="margin-top:10px">
+        <div class="field"><label for="ms-what">무엇을 바꿨나</label>
+          <input id="ms-what" name="what" type="text" required
+            placeholder="예) 뒤통수 올리기 시작 · 쿠션을 벨트 아래로 · 노트북 받침대" /></div>
+        <div class="grid2">
+          <div class="field"><label for="ms-date">언제부터</label>
+            <input id="ms-date" name="date" type="date" value="${esc(dateKey())}" required /></div>
+          <div class="field"><label for="ms-note">메모 <span class="unit">선택</span></label>
+            <input id="ms-note" name="note" type="text" placeholder="예) 사무실에서만" /></div>
+        </div>
+        <button class="btn primary full" type="submit">적기</button>
+      </form>
+    </details>
+  </div>`;
+}
+
 /* 앱이 할 수 있는 일에는 끝이 있다. 그 선을 숨기지 않는다. */
 function nextStepBlock(state, areaId) {
   /* 아형이 정해졌으면 그 아형의 다음 단계가 있다. 없으면 부위 기본값. */
@@ -234,6 +276,7 @@ export default {
 
       ${open ? openBlock(state, open) : startBlock(state, areaId)}
       ${nextStepBlock(state, areaId)}
+      ${milestoneBlock(state)}
       ${effectBlock(state)}
       ${historyBlock(state)}
 
@@ -293,6 +336,21 @@ export default {
       toast('지웠습니다');
       ctx.rerender();
     });
+
+    root.querySelector('[data-ms-form]')?.addEventListener('submit', (e) => {
+      e.preventDefault();
+      const f = new FormData(e.target);
+      const what = String(f.get('what') || '').trim();
+      if (!what) return;
+      addMilestone({ date: f.get('date'), what, note: String(f.get('note') || '').trim() });
+      toast('적었습니다. 이제 며칠째인지 셉니다');
+      ctx.rerender();
+    });
+
+    root.querySelectorAll('[data-ms-del]').forEach((b) => b.addEventListener('click', () => {
+      removeEntry('milestones', b.dataset.msDel);
+      ctx.rerender();
+    }));
 
     root.querySelectorAll('[data-rl-del]').forEach((b) => b.addEventListener('click', () => {
       removeEntry('relief', b.dataset.rlDel);

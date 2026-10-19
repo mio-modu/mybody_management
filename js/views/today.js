@@ -1,7 +1,7 @@
 /* 홈 — "지금 뭘 해야 하는지"만 보여주는 화면 */
 import { ROUTINE } from '../config.js';
 import { hasModule, painAreas } from '../profile.js';
-import { openRelief } from '../store.js';
+import { openRelief, daysSince, daysSinceLastEntry } from '../store.js';
 import { dateKey, esc, num, signed, relDay, fmtDateTime } from '../utils.js';
 import { toggleRoutine, setDay, upsertWeight, addEntry } from '../store.js';
 import { pending, skipToday, currentSlot, gapDays } from '../checkin.js';
@@ -97,6 +97,19 @@ function checkinCard(state) {
 
 /* 지금 불편한 순간에 가장 먼저 눌리는 자리. 통증 기록보다 위에 둔다 —
  * 아플 때 사람은 "오늘 몇 점인가"를 적고 싶지 않고 뭘 할지 알고 싶어 한다. */
+/* 오랜만에 열었을 때 간격 자체가 정보다. 그리고 바꾼 것이 며칠째인지도. */
+function elapsedLine(state) {
+  const ms = [...(state.milestones || [])];
+  const last = ms[ms.length - 1];
+  const gap = daysSinceLastEntry();
+  const bits = [];
+  if (last) bits.push(`<strong>${esc(last.what)}</strong> ${esc(String(daysSince(last.date)))}일째`);
+  if (gap != null && gap >= 3) bits.push(`마지막 기록 ${esc(String(gap))}일 전`);
+  if (!bits.length) return '';
+  return `<div class="card" style="padding:12px 16px">
+    <span class="note">${bits.join(' · ')}</span></div>`;
+}
+
 function reliefCard(state) {
   if (!hasModule(state, 'pain')) return '';
   const open = openRelief();
@@ -257,6 +270,7 @@ export default {
           ? `<div class="note warn" style="margin-top:8px">감량 속도가 주당 ${esc(num(-w.perWeek, 2))}kg입니다. 목표 상한(${esc(num(state.targets.weightPaceKgPerWeek, 1))}kg)보다 빠릅니다 — 근손실·탈모·담석 위험이 올라가니 단백질과 수면을 먼저 확보하세요.</div>` : ''}
       </div>
 
+      ${elapsedLine(state)}
       ${reliefCard(state)}
       ${painCard(state)}
       ${quickCard(state)}
