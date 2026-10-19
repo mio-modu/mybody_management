@@ -122,14 +122,23 @@ function startBlock(state, areaId) {
 
       <div class="section-title">무엇을 할까 <span class="unit">하나만 골라도 됩니다</span></div>
       ${list.length ? list.map((it) => {
-        const ex = it.label ? null : getExercise(it.id);
+        /* label 을 가진 조치도 설명 사전에 항목이 있으면 그 설명을 쓴다.
+         * 이름은 label 이 이기고, 단계·실수는 사전이 채운다. */
+        const ex = getExercise(it.id);
         return `<label class="check" data-rl-pick="${esc(it.id)}">
           <input type="checkbox" />
           <span class="ct"><span class="cl">${esc(actionName(it))}
             <span class="unit">${esc(it.dose)}</span></span>
             <span style="display:block;font-size:11.5px;color:var(--ink-muted)">${esc(it.why)}</span>
             ${ex ? `<span style="display:block;font-size:11.5px;color:var(--ink-muted)">${esc(ex.steps[0])}</span>` : ''}
-          </span></label>`;
+          </span></label>
+          ${ex && ex.steps.length > 1 ? `<details class="rx-extra" style="margin:-4px 0 8px 33px">
+            <summary>하는 법 펼치기</summary>
+            <ol class="how-steps" style="margin:8px 0">${ex.steps.map((t) => `<li>${esc(t)}</li>`).join('')}</ol>
+            <div class="how-note good"><strong>이 느낌이면 맞다</strong> ${esc(ex.feel)}</div>
+            <div class="how-note warn"><strong>흔한 실수</strong> ${esc(ex.mistake)}</div>
+            ${ex.note ? `<div class="how-note"><strong>덧붙임</strong> ${esc(ex.note)}</div>` : ''}
+          </details>` : ''}`;
       }).join('') : '<p class="empty">이 부위는 아직 즉시 조치 목록이 없습니다.</p>'}
 
       <button class="btn primary full" style="margin-top:12px" data-rl-start>시작하기</button>
