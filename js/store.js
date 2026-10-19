@@ -25,6 +25,7 @@ function emptyProfileData(name = '') {
        * 섞이면 나중에 무엇이 사실이었는지 알 수 없게 된다. */
       history: { diagnosed: '', notes: '' },
       lowBackType: 'unknown',   // unknown | stenosis | disc — 협착과 디스크는 처방이 정반대다
+      onset: {},                // {부위id: ONSET_CHOICES.id} — 얼마나 됐는지가 할 일을 바꾼다
       onboarded: false,
       showHowTo: true,
       modules: { ...DEFAULT_MODULES },
@@ -99,6 +100,7 @@ function fillData(d = {}) {
   if (!out.profile.history || typeof out.profile.history !== 'object') {
     out.profile.history = { diagnosed: '', notes: '' };
   }
+  if (!out.profile.onset || typeof out.profile.onset !== 'object') out.profile.onset = {};
   out.targets = { ...base.targets, ...(d.targets || {}) };
   ['weight', 'glucose', 'labs', 'pain', 'relief', 'milestones'].forEach((k) => { out[k] = Array.isArray(d[k]) ? d[k] : []; });
   out.days = d.days && typeof d.days === 'object' ? d.days : {};
@@ -302,6 +304,13 @@ export function addMilestone({ date, what, areaId = '', note = '' }) {
 
 export function setTargets(patch) { Object.assign(state.targets, patch); save(); }
 export function setProfile(patch) { Object.assign(state.profile, patch); save(); }
+
+/* 이 부위가 얼마나 됐는가. 빈 값이면 지운다 — '모름'을 저장해 둘 이유가 없다. */
+export function setOnset(areaId, id) {
+  if (!state.profile.onset || typeof state.profile.onset !== 'object') state.profile.onset = {};
+  if (id) state.profile.onset[areaId] = id; else delete state.profile.onset[areaId];
+  save();
+}
 export function setSettings(patch) { Object.assign(root.settings, patch); save(); }
 export function setRewards(patch) { Object.assign(state.rewards, patch); save(); }
 

@@ -4,12 +4,13 @@
  * 그리고 이 기록만이 답할 수 있는 질문이 하나 있다 — 무엇이 나에게 실제로 먹히나.
  * 남의 평균이 아니라 내 몸에서 나온 숫자라서, 적은 횟수로도 쓸모가 있다.
  * 다만 적을 때 숫자를 들이밀면 우연을 실력으로 착각하므로 n 이 기준 미만이면 감춘다. */
-import { PRINCIPLES, RELIEF_ACTIONS, RELIEF_MIN_N, PAIN_AREAS, LOWBACK_TYPES, NEXT_STEP } from '../config.js';
-import { painAreas, areaKey, lowBackType } from '../profile.js';
+import { PRINCIPLES, RELIEF_ACTIONS, RELIEF_MIN_N, PAIN_AREAS, LOWBACK_TYPES, NEXT_STEP,
+  ONSET_CHOICES, durationNote } from '../config.js';
+import { painAreas, areaKey, lowBackType, onsetOf } from '../profile.js';
 import { getExercise } from '../exercises.js';
 import { esc, num, relDay, fmtDateTime, dateKey, fmtDate } from '../utils.js';
 import { openRelief, startRelief, finishRelief, cancelRelief, removeEntry, setProfile,
-  addMilestone, daysSince, daysSinceLastEntry } from '../store.js';
+  setOnset, addMilestone, daysSince, daysSinceLastEntry } from '../store.js';
 import { reliefEffects } from '../analysis.js';
 import { tile, toast } from '../ui.js';
 
@@ -190,6 +191,26 @@ function milestoneBlock(state) {
 }
 
 /* 앱이 할 수 있는 일에는 끝이 있다. 그 선을 숨기지 않는다. */
+/* 얼마나 됐는가 — 다음 단계가 이 답에 따라 달라지므로 바로 옆에 둔다.
+ * 1년 된 것에 "4주 뒤 다시 재기"라고 말하면 그건 이미 네 번 해 본 말이다. */
+function onsetBlock(state, areaId) {
+  const cur = state?.profile?.onset?.[areaId] || '';
+  const choice = onsetOf(state, areaId);
+  const note = choice ? durationNote(choice.months) : null;
+  return `<div class="card">
+    <div class="card-head"><h2>언제부터인가</h2>
+      ${choice ? `<span class="tag">${esc(areaLabel(areaId))} · ${esc(choice.label)}</span>` : ''}</div>
+    <p class="note">사흘 된 통증과 1년 된 통증은 같은 통증이 아닙니다. 할 일이 달라집니다.</p>
+    <div class="chips" data-onset-area="${esc(areaId)}">
+      ${ONSET_CHOICES.map((c) => `<button type="button" class="chip" data-onset="${esc(c.id)}"
+        aria-pressed="${c.id === cur}">${esc(c.label)}</button>`).join('')}
+    </div>
+    ${note ? `<div class="note ${choice.months >= 12 ? 'warn' : ''}" style="margin-top:12px">
+        <strong>${esc(note.title)}</strong></div>
+      <p class="note">${esc(note.body)}</p>` : ''}
+  </div>`;
+}
+
 function nextStepBlock(state, areaId) {
   /* 아형이 정해졌으면 그 아형의 다음 단계가 있다. 없으면 부위 기본값. */
   const ns = NEXT_STEP[areaKey(state, areaId)] || NEXT_STEP[areaId];
@@ -285,6 +306,7 @@ export default {
 
       ${open ? openBlock(state, open) : startBlock(state, areaId)}
       ${nextStepBlock(state, areaId)}
+      ${onsetBlock(state, areaId)}
       ${milestoneBlock(state)}
       ${effectBlock(state)}
       ${historyBlock(state)}
@@ -306,7 +328,12 @@ export default {
       ctx.rerender();
     }));
 
-    /* 조치 체크 */
+    /* 언제부터인가 — 고른 즉시 다음 단계의 말이 바뀐다 */
+    root.querySelectorAll('[data-onset]').forEach((b) => b.addEventListener('click', () => {
+      setOnset(b.closest('[data-onset-area]').dataset.onsetArea, b.dataset.onset);
+      ctx.rerender();
+    }));
+
     root.querySelectorAll('[data-lb]').forEach((b) => b.addEventListener('click', () => {
       setProfile({ lowBackType: b.dataset.lb });
       toast('허리 아형을 바꿨습니다 — 조치가 다시 계산됩니다');
