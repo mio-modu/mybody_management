@@ -171,7 +171,9 @@ function prescriptionBlock(state) {
           <br/><span class="rx-why">아픈 정도보다 이 범위가 정확한 지표입니다.</span></div>`;
       }).join('')}
 
-      ${avoidBlock(state, shown.map((a) => a.area.id))}
+      ${/* 처방이 없는 부위(고관절·눈·두피)도 '하지 않을 것'은 있다.
+          운동으로 다룰 수 없는 부위일수록 빼는 쪽이 전부라서, 켜 둔 부위 전부를 넘긴다. */''}
+      ${avoidBlock(state, painAreas(state).map((a) => a.id))}
 
       ${rx.cautions.length ? `<div class="section-title">오늘 피할 것 · 바꿀 것</div>
         ${rx.cautions.map((c) => `<div class="row"><span class="grow" style="white-space:normal;color:var(--ink)">${esc(c)}</span></div>`).join('')}` : ''}
